@@ -69,81 +69,6 @@ steps:
       - /pluto detect dex.yml --ignore-deprecations --target-versions=k8s=v1.31.0
       - /pluto detect gangplank.yml --ignore-deprecations --target-versions=k8s=v1.31.0
 
----
-name: E2E Tests Kubernetes v1.28.13
-kind: pipeline
-type: docker
-
-depends_on:
-  - Linting
-
-clone:
-  depth: 1
-
-platform:
-  os: linux
-  arch: amd64
-
-trigger:
-  ref:
-    include:
-      - refs/tags/**
-
-volumes:
-  - name: dockersock
-    host:
-      path: /var/run/docker.sock
-
-steps:
-  - name: Create Kind Cluster
-    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.24.0_1.31.1_3.10.0
-    pull: always
-    depends_on:
-      - clone
-    volumes:
-      - name: dockersock
-        path: /var/run/docker.sock
-    environment:
-      # KIND_CONFIG: ./katalog/tests/kind/config.yml
-      CLUSTER_VERSION: v1.28.13
-      KUBECONFIG: kubeconfig-v1.28.13
-      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.28.13
-    commands:
-      # NOTE: kind's `--wait` flag that waits for the control-plane to be ready
-      # does not work when disabling the default CNI. It will always go in timeout.
-      - kind create cluster --name $${CLUSTER_NAME} --image registry.sighup.io/fury/kindest/node:$${CLUSTER_VERSION} # --config $${KIND_CONFIG}
-      # save the kubeconfig so we can use it from other steps.
-      - kind get kubeconfig --name $${CLUSTER_NAME} > $${KUBECONFIG}
-
-  - name: End-to-End Tests
-    image: quay.io/sighup/e2e-testing:1.1.0_1.31.1_3.10.0_4.33.3
-    pull: always
-    network_mode: host
-    environment:
-      KUBECONFIG: kubeconfig-v1.28.13
-    depends_on:
-      - Create Kind Cluster
-    commands:
-      # wait for Kind cluster to be ready
-      - until kubectl get serviceaccount default > /dev/null 2>&1; do echo "waiting for control-plane" && sleep 1; done
-      - bats -t katalog/tests/tests.sh
-
-  - name: Destroy Kind Cluster
-    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.24.0_1.31.1_3.10.0
-    volumes:
-      - name: dockersock
-        path: /var/run/docker.sock
-    environment:
-      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.28.13
-    commands:
-      # does not matter if the command fails
-      - kind delete cluster --name $${CLUSTER_NAME} || true
-    depends_on:
-      - End-to-End Tests
-    when:
-      status:
-        - success
-        - failure
 
 ---
 name: E2E Tests Kubernetes v1.29.8
@@ -374,15 +299,16 @@ steps:
         - failure
 
 ---
-name: release
+name: E2E Tests Kubernetes v1.32.0
 kind: pipeline
 type: docker
 
 depends_on:
-  - E2E Tests Kubernetes v1.28.13
-  - E2E Tests Kubernetes v1.29.8
-  - E2E Tests Kubernetes v1.30.4
+  - Linting
   - E2E Tests Kubernetes v1.31.0
+
+clone:
+  depth: 1
 
 platform:
   os: linux
@@ -392,6 +318,84 @@ trigger:
   ref:
     include:
       - refs/tags/**
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
+
+steps:
+  - name: Create Kind Cluster
+    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.27.0_1.32.2_5.6.0
+    pull: always
+    depends_on:
+      - clone
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+    environment:
+      # KIND_CONFIG: ./katalog/tests/kind/config.yml
+      CLUSTER_VERSION: v1.32.2
+      KUBECONFIG: kubeconfig-v1.32.2
+      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.32.2
+    commands:
+      # NOTE: kind's `--wait` flag that waits for the control-plane to be ready
+      # does not work when disabling the default CNI. It will always go in timeout.
+      - kind create cluster --name $${CLUSTER_NAME} --image registry.sighup.io/fury/kindest/node:$${CLUSTER_VERSION} # --config $${KIND_CONFIG}
+      # save the kubeconfig so we can use it from other steps.
+      - kind get kubeconfig --name $${CLUSTER_NAME} > $${KUBECONFIG}
+
+  - name: End-to-End Tests
+    image: quay.io/sighup/e2e-testing:2.24.17_1.1.0_3.12.0_1.32.2_5.6.0_4.33.3
+    pull: always
+    network_mode: host
+    environment:
+      KUBECONFIG: kubeconfig-v1.32.2
+    depends_on:
+      - Create Kind Cluster
+    commands:
+      # wait for Kind cluster to be ready
+      - until kubectl get serviceaccount default > /dev/null 2>&1; do echo "waiting for control-plane" && sleep 1; done
+      - bats -t katalog/tests/tests.sh
+
+  - name: Destroy Kind Cluster
+    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.27.0_1.32.2_5.6.0
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+    environment:
+      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.32.2
+    commands:
+      # does not matter if the command fails
+      - kind delete cluster --name $${CLUSTER_NAME} || true
+    depends_on:
+      - End-to-End Tests
+    when:
+      status:
+        - success
+        - failure
+
+---
+name: release
+kind: pipeline
+type: docker
+
+depends_on:
+  - E2E Tests Kubernetes v1.29.8
+  - E2E Tests Kubernetes v1.30.4
+  - E2E Tests Kubernetes v1.31.0
+  - E2E Tests Kubernetes v1.32.0
+
+platform:
+  os: linux
+  arch: amd64
+
+trigger:
+  ref:
+    include:
+      - refs/tags/**
+    exclude:
+      - refs/tags/e2e-**
 
 steps:
   - name: prepare-tar-gz
