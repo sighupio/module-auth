@@ -1,27 +1,27 @@
 <!-- markdownlint-disable MD033 -->
 <h1>
-    <img src="https://github.com/sighupio/fury-distribution/blob/main/docs/assets/fury-epta-white.png?raw=true" align="left" width="90" style="margin-right: 15px"/>
-    Kubernetes Fury Auth
+    <img src="https://raw.githubusercontent.com/sighupio/distribution/refs/heads/feat/rebranding/docs/assets/white-logo.png" align="left" width="90" style="margin-right: 15px"/>
+    Module Auth
 </h1>
 <!-- markdownlint-enable MD033 -->
 
 ![Release](https://img.shields.io/badge/Latest%20Release-v0.5.0-blue)
-![License](https://img.shields.io/github/license/sighupio/fury-kubernetes-auth?label=License)
+![License](https://img.shields.io/github/license/sighupio/module-auth?label=License)
 ![Slack](https://img.shields.io/badge/slack-@kubernetes/fury-yellow.svg?logo=slack&label=Slack)
 
 <!-- <KFD-DOCS> -->
 
-**Kubernetes Fury Auth** provides Authentication Management for [Kubernetes Fury Distribution (KFD)][kfd-repo].
+**Module Auth** provides Authentication Management for [SIGHUP Distribution (SKD)][skd-repo].
 
-If you are new to KFD please refer to the [official documentation][kfd-docs] on how to get started with the distribution.
+If you are new to SKD please refer to the [official documentation][skd-docs] on how to get started with the distribution.
 
 ## Overview
 
-**Kubernetes Fury Auth** uses CNCF recommended, Cloud Native projects, such as the [Dex][dex-repo] identity provider, and [Pomerium][pomerium-repo] as an identity-aware proxy to enable secure access to internal applications.
+**Module Auth** uses CNCF recommended, Cloud Native projects, such as the [Dex][dex-repo] identity provider, and [Pomerium][pomerium-repo] as an identity-aware proxy to enable secure access to internal applications.
 
 ## Packages
 
-Kubernetes Fury Auth provides the following packages:
+Module Auth provides the following packages:
 
 | Package                        | Version   | Description                                                               |
 | ------------------------------ | --------- | ------------------------------------------------------------------------- |
@@ -52,7 +52,7 @@ Check the [compatibility matrix][compatibility-matrix] for additional informatio
 
 | Tool                        | Version   | Description                                                                                                                                                    |
 | --------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [furyctl][furyctl-repo]     | `>=0.6.0` | The recommended tool to download and manage KFD modules and their packages. To learn more about `furyctl` read the [official documentation][furyctl-repo].     |
+| [furyctl][furyctl-repo]     | `>=0.6.0` | The recommended tool to download and manage SKD modules and their packages. To learn more about `furyctl` read the [official documentation][furyctl-repo].     |
 | [kustomize][kustomize-repo] | `>=3.5.0` | Packages are customized using `kustomize`. To learn how to create your customization layer with `kustomize`, please refer to the [repository][kustomize-repo]. |
 
 ### Deployment with legacy furyctl
@@ -105,12 +105,12 @@ kustomize build . | kubectl apply -f -
 
 ### Monitoring
 
-KFD Auth module integrates out-of-the-box with KFD's Monitoring module. Providing metrics and dashboards to visualize the status of its components.
+SKD Auth module integrates out-of-the-box with SKD's Monitoring module. Providing metrics and dashboards to visualize the status of its components.
 
 In particular:
 
-- Dex exposes standard Go adapter metrics, the metrics are automatically scrapped by Prometheus when using KFD Monitoring module but there are no Grafana dashboards nor alerts defined.
-- Pomerium exposes several metrics about Pomerium itself and its underlying envoy proxy. Metrics are scrapped automatically by Prometheus and 2 Grafana dashboards are available with the `pomerium` tag when using KFD Monitoring module. Here are some screenshots:
+- Dex exposes standard Go adapter metrics, the metrics are automatically scrapped by Prometheus when using SKD Monitoring module but there are no Grafana dashboards nor alerts defined.
+- Pomerium exposes several metrics about Pomerium itself and its underlying envoy proxy. Metrics are scrapped automatically by Prometheus and 2 Grafana dashboards are available with the `pomerium` tag when using SKD Monitoring module. Here are some screenshots:
 
 <!-- markdownlint-disable MD033 -->
 
@@ -140,10 +140,10 @@ In particular:
 <!-- Links -->
 
 [furyctl-repo]: https://github.com/sighupio/furyctl
-[kfd-repo]: https://github.com/sighupio/fury-distribution
+[skd-repo]: https://github.com/sighupio/distribution
 [kustomize-repo]: https://github.com/kubernetes-sigs/kustomize
-[kfd-docs]: https://docs.kubernetesfury.com/docs/distribution/
-[compatibility-matrix]: https://github.com/sighupio/fury-kubernetes-auth/blob/master/docs/COMPATIBILITY_MATRIX.md
+[skd-docs]: https://docs.kubernetesfury.com/docs/distribution/
+[compatibility-matrix]: https://github.com/sighupio/module-auth/blob/master/docs/COMPATIBILITY_MATRIX.md
 [pomerium-repo]: https://github.com/pomerium/pomerium
 [dex-repo]: https://github.com/dexidp/dex
 
@@ -157,7 +157,7 @@ Before contributing, please read first the [Contributing Guidelines](docs/CONTRI
 
 ### Reporting Issues
 
-In case you experience any problems with the module, please [open a new issue](https://github.com/sighupio/fury-kubernetes-auth/issues/new/choose).
+In case you experience any problems with the module, please [open a new issue](https://github.com/sighupio/module-auth/issues/new/choose).
 
 ## License
 
