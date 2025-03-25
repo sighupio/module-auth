@@ -15,7 +15,7 @@ To update the Pomerium package, follow the next steps:
 
 1. The manifests for Pomerium are custom, there is no upstream to follow. Read carefully the release notes from upstream and adjust the manifests.
 2. Update the documentation.
-3. Sync the new image tag to Fury's registry.
+3. Sync the new image tag to SKD's registry.
 
 ### Monitoring
 
