@@ -2,4 +2,4 @@
 
 There's no upstream to follow.
 
-The HTML templates are custom made to follow the SKD Desing System.
+The HTML templates are custom made to follow the SD Desing System.

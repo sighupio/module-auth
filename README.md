@@ -15,9 +15,9 @@
 
 <!-- <KFD-DOCS> -->
 
-**Auth Module** provides Authentication Management for [SIGHUP Distribution (SKD)][skd-repo].
+**Auth Module** provides Authentication Management for [SIGHUP Distribution (SD)][skd-repo].
 
-If you are new to SKD please refer to the [official documentation][skd-docs] on how to get started with the distribution.
+If you are new to SD please refer to the [official documentation][skd-docs] on how to get started with the distribution.
 
 ## Overview
 
@@ -56,7 +56,7 @@ Check the [compatibility matrix][compatibility-matrix] for additional informatio
 
 | Tool                        | Version   | Description                                                                                                                                                    |
 | --------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [furyctl][furyctl-repo]     | `>=0.6.0` | The recommended tool to download and manage SKD modules and their packages. To learn more about `furyctl` read the [official documentation][furyctl-repo].     |
+| [furyctl][furyctl-repo]     | `>=0.6.0` | The recommended tool to download and manage SD modules and their packages. To learn more about `furyctl` read the [official documentation][furyctl-repo].     |
 | [kustomize][kustomize-repo] | `>=3.5.0` | Packages are customized using `kustomize`. To learn how to create your customization layer with `kustomize`, please refer to the [repository][kustomize-repo]. |
 
 ### Deployment with legacy furyctl
@@ -109,12 +109,12 @@ kustomize build . | kubectl apply -f -
 
 ### Monitoring
 
-SKD Auth module integrates out-of-the-box with SKD's Monitoring module. Providing metrics and dashboards to visualize the status of its components.
+SD Auth module integrates out-of-the-box with SD's Monitoring module. Providing metrics and dashboards to visualize the status of its components.
 
 In particular:
 
-- Dex exposes standard Go adapter metrics, the metrics are automatically scrapped by Prometheus when using SKD Monitoring module but there are no Grafana dashboards nor alerts defined.
-- Pomerium exposes several metrics about Pomerium itself and its underlying envoy proxy. Metrics are scrapped automatically by Prometheus and 2 Grafana dashboards are available with the `pomerium` tag when using SKD Monitoring module. Here are some screenshots:
+- Dex exposes standard Go adapter metrics, the metrics are automatically scrapped by Prometheus when using SD Monitoring module but there are no Grafana dashboards nor alerts defined.
+- Pomerium exposes several metrics about Pomerium itself and its underlying envoy proxy. Metrics are scrapped automatically by Prometheus and 2 Grafana dashboards are available with the `pomerium` tag when using SD Monitoring module. Here are some screenshots:
 
 <!-- markdownlint-disable MD033 -->
 
