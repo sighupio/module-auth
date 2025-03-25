@@ -1,7 +1,11 @@
 <!-- markdownlint-disable MD033 -->
-<h1>
-    <img src="https://raw.githubusercontent.com/sighupio/distribution/refs/heads/feat/rebranding/docs/assets/white-logo.png" align="left" width="90" style="margin-right: 15px"/>
-    Module Auth
+<h1 align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/sighupio/distribution/refs/heads/main/docs/assets/white-logo.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/sighupio/distribution/refs/heads/main/docs/assets/black-logo.png">
+  <img alt="Shows a black logo in light color mode and a white one in dark color mode." src="https://raw.githubusercontent.com/sighupio/distribution/refs/heads/main/docs/assets/white-logo.png">
+</picture><br/>
+  Auth Module
 </h1>
 <!-- markdownlint-enable MD033 -->
 
@@ -11,17 +15,17 @@
 
 <!-- <KFD-DOCS> -->
 
-**Module Auth** provides Authentication Management for [SIGHUP Distribution (SKD)][skd-repo].
+**Auth Module** provides Authentication Management for [SIGHUP Distribution (SKD)][skd-repo].
 
 If you are new to SKD please refer to the [official documentation][skd-docs] on how to get started with the distribution.
 
 ## Overview
 
-**Module Auth** uses CNCF recommended, Cloud Native projects, such as the [Dex][dex-repo] identity provider, and [Pomerium][pomerium-repo] as an identity-aware proxy to enable secure access to internal applications.
+**Auth Module** uses CNCF recommended, Cloud Native projects, such as the [Dex][dex-repo] identity provider, and [Pomerium][pomerium-repo] as an identity-aware proxy to enable secure access to internal applications.
 
 ## Packages
 
-Module Auth provides the following packages:
+Auth Module provides the following packages:
 
 | Package                        | Version   | Description                                                               |
 | ------------------------------ | --------- | ------------------------------------------------------------------------- |
