@@ -9,7 +9,7 @@ metadata:
   annotations:
     forecastle.stakater.com/expose: "true"
     forecastle.stakater.com/appName: "Pomerium"
-    forecastle.stakater.com/icon: "https://pbs.twimg.com/profile_images/1161448498849390592/fJZaKEGR.png"
+    forecastle.stakater.com/icon: "https://raw.githubusercontent.com/pomerium/pomerium/refs/heads/main/ui/dist/apple-touch-icon.png"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
     kubernetes.io/tls-acme: "true"
