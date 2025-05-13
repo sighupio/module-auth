@@ -16,7 +16,7 @@ This release updates the package versions of Gangplank to the latest available.
 
 ### Process
 
-To upgrade this module from `v0.4.0` to `v0.5.0`, you need to download this new version, then apply the `kustomize` project. No further action is required.
+To upgrade this module from `v0.5.0` to `vTBD`, you need to download this new version, then apply the `kustomize` project. No further action is required.
 
 ```bash
 kustomize build | kubectl apply -f -
