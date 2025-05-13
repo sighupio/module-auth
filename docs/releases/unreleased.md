@@ -12,6 +12,13 @@ This release updates the package versions of Gangplank to the latest available.
 | `gangplank` | [`v1.1.1`](https://github.com/sighupio/gangplank/releases/tag/v1.1.1)  | `v1.1.0`         |
 | `pomerium`  | [`v0.28.0`](https://github.com/pomerium/pomerium/releases/tag/v0.28.0) | `v0.27.1`        |
 
+## Bug fixes 🐞
+
+- [[#42](https://github.com/sighupio/module-auth/pull/42)] Fix OIDC refresh-token flows: Gangplank can now include the Identity Provider's TLS certificate in the generated kubeconfig.
+This fixes broken refresh-token flows when the IDP exposes a self-signed certificate.
+  
+  To use this feature, mount the IDP certificate inside the container and configure the parameter `idpCaPath` in the yaml configuration file or the `GANGPLANK_CONFIG_IDP_CA_PATH` environment variable.
+
 ## Update Guide 🦮
 
 ### Process
