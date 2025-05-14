@@ -9,7 +9,7 @@
 </h1>
 <!-- markdownlint-enable MD033 -->
 
-![Release](https://img.shields.io/badge/Latest%20Release-v0.5.0-blue)
+![Release](https://img.shields.io/badge/Latest%20Release-v0.5.1-blue)
 ![License](https://img.shields.io/github/license/sighupio/module-auth?label=License)
 ![Slack](https://img.shields.io/badge/slack-@kubernetes/fury-yellow.svg?logo=slack&label=Slack)
 
@@ -31,7 +31,7 @@ Auth Module provides the following packages:
 | ------------------------------ | --------- | ------------------------------------------------------------------------- |
 | [Pomerium](katalog/pomerium)   | `v0.28.0` | Identity-aware proxy that enables secure access to internal applications. |
 | [Dex](katalog/dex)             | `v2.42.0` | Dex is a Federated OpenID Connect Provider.                               |
-| [Gangplank](katalog/gangplank) | `v1.1.0`  | Enable authentication flows via OIDC for a kubernetes cluster.            |
+| [Gangplank](katalog/gangplank) | `v1.1.1`  | Enable authentication flows via OIDC for a kubernetes cluster.            |
 
 ## Compatibility
 
@@ -65,7 +65,7 @@ Check the [compatibility matrix][compatibility-matrix] for additional informatio
 
 ```yaml
 versions:
-  auth: "v0.5.0"
+  auth: "v0.5.1"
 bases:
   - name: auth/pomerium
   - name: auth/dex
