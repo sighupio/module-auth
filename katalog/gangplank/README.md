@@ -16,7 +16,7 @@ Kubernetes supports OpenID Connect Tokens as a way to identify users who access 
 ## Image repository and tag
 
 - Gangplank repository: <https://github.com/sighupio/gangplank>
-- Gangplank container image: `registry.sighup.io/fury/gangplank:1.1.0`
+- Gangplank container image: `registry.sighup.io/fury/gangplank:1.1.1`
 
 ## Configuration
 
