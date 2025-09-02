@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-issuer: https://dex.sighup.io
+issuer: https://dex.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}
 frontend:
   dir: /app/web
   theme: dark
@@ -42,12 +42,12 @@ oauth2:
 staticClients:
   - id: pomerium
     redirectURIs:
-      - http://pomerium.127.0.0.1.nip.io
+      - https://pomerium.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/oauth2/callback
     name: "Pomerium in-cluster SSO"
     secret: pomerium
   - id: gangplank
     redirectURIs:
-      - http://gangplank.127.0.0.1.nip.io/callback
+      - https://gangplank.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/callback
     name: "In cluster LOGIN"
     secret: gangplank
 enablePasswordDB: false
