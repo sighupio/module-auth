@@ -164,25 +164,80 @@ set -o pipefail
   echo "🔍 Testing complete OIDC authentication flow..."
   echo "  → Flow: httpbin → Pomerium → Dex → LDAP → JWT → httpbin"
   
-  # Test that authentication redirects are working
-  response=$(curl -k -s -w "%{http_code}" -o /dev/null \
-      https://httpbin.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/headers)
+  # CRITICAL: Clean session state to prevent pollution
+  rm -f /tmp/cookies.txt
+  echo "  → Cleaned session state"
   
-  # Should redirect to authentication (302/303) or show auth page (200)
-  echo "  → Initial access response: $response"
-  [[ "$response" == "302" || "$response" == "303" || "$response" == "200" ]]
+  # Step 1: Initial access to httpbin - should redirect to Dex via Pomerium
+  echo "  → Step 1: Accessing httpbin to initiate authentication flow"
+  curl -k -v -L -c /tmp/cookies.txt -b /tmp/cookies.txt --max-time 30 \
+      "https://httpbin.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/" \
+      > /tmp/auth_step1.log 2>&1
   
-  # Test that redirect chain leads to authentication
-  echo "  → Testing authentication redirect chain..."
-  response=$(curl -k -s -L \
-      https://httpbin.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/ | head -20)
+  # Step 2: Parse Dex login form details from the redirected response
+  echo "  → Step 2: Parsing Dex login form"
   
-  # Should contain Dex login page elements
-  echo "$response" | grep -q -i -E "(dex|login|auth)"
-  echo "  ✅ Pomerium → Dex authentication redirect working"
+  # Extract Dex base URL from Location header - look for dex domain
+  dex_base_url=$(grep -E '< location: https?://dex[^/]*' /tmp/auth_step1.log | head -n 1 | sed -E 's|.*< location: (https?://[^/]+).*|\1|')
+  echo "    → Dex base URL: $dex_base_url"
   
-  echo "  → OIDC authentication flow validated successfully"
-  echo "  📋 Note: Session management pattern identified - authentication works with established sessions"
+  # Get the final response body which should contain the Dex login form - the curl log already shows the HTML
+  # Extract the HTML content from the curl verbose output (from line that starts with <!DOCTYPE)
+  dex_form_html=$(sed -n '/<!DOCTYPE html>/,/<\/html>/p' /tmp/auth_step1.log)
+  
+  # Extract form action from HTML and decode HTML entities
+  form_action=$(echo "$dex_form_html" | grep -oE 'action="[^"]*"' | sed 's/action="//;s/"//' | sed 's/&amp;/\&/g')
+  
+  # For this Dex setup, there's no CSRF token needed - just username/password
+  csrf_token=""
+  
+  echo "    → Form action: $form_action"
+  echo "    → CSRF token: ${csrf_token:0:20}..."
+  
+  # Construct full login URL
+  if [[ "$form_action" == /* ]]; then
+    dex_login_url="${dex_base_url}${form_action}"
+  else
+    dex_login_url="$form_action"
+  fi
+  echo "    → Login URL: $dex_login_url"
+  
+  # Step 3: Submit LDAP credentials to Dex
+  echo "  → Step 3: Submitting credentials to Dex"
+  curl -k -v -L -c /tmp/cookies.txt -b /tmp/cookies.txt --max-time 30 \
+      -X POST \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      --data-urlencode "login=user1" \
+      --data-urlencode "password=userone" \
+      "$dex_login_url" \
+      > /tmp/auth_step3.log 2>&1
+  
+  # Step 4: Verify authenticated access to httpbin/headers
+  echo "  → Step 4: Verifying authenticated access to httpbin/headers"
+  
+  # Access httpbin/headers with session cookies - should return 200 OK
+  final_response=$(curl -k -s -L -w "%{http_code}" -c /tmp/cookies.txt -b /tmp/cookies.txt --max-time 30 \
+      "https://httpbin.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/headers" \
+      -o /tmp/auth_final_response.json 2>/dev/null)
+  
+  echo "    → Final response code: $final_response"
+  
+  # CRITICAL ASSERTION: Must get 200 OK
+  [[ "$final_response" == "200" ]]
+  
+  # Verify response is valid httpbin JSON
+  response_content=$(cat /tmp/auth_final_response.json)
+  echo "$response_content" | grep -q '"headers"'
+  
+  # Verify Pomerium authentication headers are present
+  echo "$response_content" | grep -q -i -E "(X-Pomerium|pomerium)"
+  
+  echo "  ✅ Complete authentication flow successful!"
+  echo "  📊 Response contains httpbin headers with Pomerium authentication"
+  
+  # Clean up test artifacts
+  rm -f /tmp/cookies.txt /tmp/auth_step1.log /tmp/auth_step3.log /tmp/auth_final_response.json
+  echo "  → Cleaned up test artifacts"
 }
 
 @test "validate complete auth system integration" {
