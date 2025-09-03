@@ -177,6 +177,13 @@ set -o pipefail
   
   show "  → Final URL after redirects: $FINAL_URL"
   
+  # Check Pomerium logs after Step 1
+  show "  → Checking Pomerium logs after Step 1..."
+  POMERIUM_POD=$(kubectl get pods -n pomerium -l app=pomerium -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+  if [[ -n "$POMERIUM_POD" ]]; then
+    kubectl logs -n pomerium "$POMERIUM_POD" --tail=5 2>/dev/null | while read line; do show "    POMERIUM: $line"; done
+  fi
+  
   # Step 2: Parse Dex login form details from the final URL
   show "  → Step 2: Extracting Dex base URL from final destination"
   
@@ -223,6 +230,12 @@ set -o pipefail
       "$dex_login_url" \
       > /tmp/auth_step3.log 2>&1
   
+  # Check Pomerium logs after Step 3
+  show "  → Checking Pomerium logs after Step 3..."
+  if [[ -n "$POMERIUM_POD" ]]; then
+    kubectl logs -n pomerium "$POMERIUM_POD" --tail=5 2>/dev/null | while read line; do show "    POMERIUM: $line"; done
+  fi
+  
   # Step 4: Verify authenticated access to httpbin/headers
   show "  → Step 4: Verifying authenticated access to httpbin/headers"
   
@@ -232,6 +245,12 @@ set -o pipefail
       -o /tmp/auth_final_response.json 2>/dev/null)
   
   show "    → Final response code: $final_response"
+  
+  # Check Pomerium logs after Step 4
+  show "  → Checking Pomerium logs after Step 4..."
+  if [[ -n "$POMERIUM_POD" ]]; then
+    kubectl logs -n pomerium "$POMERIUM_POD" --tail=5 2>/dev/null | while read line; do show "    POMERIUM: $line"; done
+  fi
   
   # CRITICAL ASSERTION: Must get 200 OK
   [[ "$final_response" == "200" ]]

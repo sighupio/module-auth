@@ -87,6 +87,8 @@ steps:
 name: E2E Tests on kind clusters version 1.29.8
 kind: pipeline
 type: docker
+node:
+  performance: low
 platform:
   os: linux
   arch: amd64
