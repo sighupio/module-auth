@@ -93,8 +93,13 @@ if ! echo "$KUBE_VERSION" | grep -E "$VERSION_REGEX" > /dev/null; then
     exit 2
 fi
 
-# Extract the major version part (Y) from the Kubernetes version
-MAJOR_VERSION=$(echo "$KUBE_VERSION" | cut -d'.' -f2)
+# Extract major, minor, and patch versions from the Kubernetes version
+MAJOR_VERSION=$(echo "$KUBE_VERSION" | sed 's/^v//' | cut -d'.' -f1)
+MINOR_VERSION=$(echo "$KUBE_VERSION" | cut -d'.' -f2) 
+PATCH_VERSION=$(echo "$KUBE_VERSION" | cut -d'.' -f3)
+
+# Create concatenated version number for better port distribution
+VERSION_CONCAT="${MAJOR_VERSION}${MINOR_VERSION}${PATCH_VERSION}"
 
 # Validate that the DRONE_BUILD_NUMBER environment variable is set and is an integer
 if [ -z "$DRONE_BUILD_NUMBER" ] || ! echo "$DRONE_BUILD_NUMBER" | grep -E '^[0-9]+$' > /dev/null; then
@@ -102,8 +107,9 @@ if [ -z "$DRONE_BUILD_NUMBER" ] || ! echo "$DRONE_BUILD_NUMBER" | grep -E '^[0-9
     exit 3
 fi
 
-# Calculate unique HTTPS port based on the major Kubernetes version, DRONE_BUILD_NUMBER, and default HTTPS port value
-UNIQUE_HTTPS_PORT=$((MAJOR_VERSION + DRONE_BUILD_NUMBER + DEFAULT_HTTPS_PORT))
+# Calculate unique HTTPS port using concatenated version (major.minor.patch), DRONE_BUILD_NUMBER, and default HTTPS port value
+# Version concatenation provides natural separation between different Kubernetes versions
+UNIQUE_HTTPS_PORT=$((VERSION_CONCAT + DRONE_BUILD_NUMBER + DEFAULT_HTTPS_PORT))
 
 # Ensure unique port is greater than 1024 and less than 30000
 if [ "$UNIQUE_HTTPS_PORT" -le 1024 ] || [ "$UNIQUE_HTTPS_PORT" -ge 30000 ]; then
