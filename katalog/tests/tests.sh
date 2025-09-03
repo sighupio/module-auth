@@ -11,82 +11,8 @@ set -o pipefail
 
 # ========== Tool Validation Functions ==========
 
-# Tool validation function for CI environment debugging
-validate_tools() {
-  show "🔧 Validating CI environment tools..."
-  
-  # Check core tools existence
-  for tool in curl grep sed head tail; do
-    if command -v "$tool" >/dev/null 2>&1; then
-      show "✅ $tool: $(command -v $tool)"
-    else
-      show "❌ Missing: $tool"
-      return 1
-    fi
-  done
-  
-  # Check tool versions and capabilities
-  show "📋 Tool versions:"
-  show "  curl: $(curl --version | head -1)"
-  show "  grep: $(grep --version 2>&1 | head -1 || echo 'No version info')"
-  show "  sed: $(sed --version 2>&1 | head -1 || echo 'No version info')"
-  
-  # Test GNU vs BSD detection
-  if grep --version 2>/dev/null | grep -q "GNU"; then
-    show "📍 GNU grep detected"
-  else
-    show "📍 BSD/other grep detected"
-  fi
-  
-  if sed --version 2>/dev/null | grep -q "GNU"; then
-    show "📍 GNU sed detected"
-  else
-    show "📍 BSD/other sed detected"
-  fi
-}
-
-# Test regex pattern functionality
-test_regex_patterns() {
-  show "🧪 Testing regex patterns..."
-  
-  # Create test data similar to the failing curl output
-  cat > /tmp/test_curl_output <<'EOF'
-< location: https://pomerium.116.202.228.246.nip.io:4048/.pomerium/sign_in?params
-< location: https://dex.116.202.228.246.nip.io:4048/auth?params
-EOF
-  
-  # Test the failing pattern
-  result=$(grep -E '< location: https?://dex[^/]*' /tmp/test_curl_output | tail -n 1)
-  if [ -n "$result" ]; then
-    show "✅ Dex pattern works: $result"
-  else
-    show "❌ Dex pattern fails"
-  fi
-  
-  # Test sed extraction
-  if [ -n "$result" ]; then
-    extracted=$(echo "$result" | sed -E 's|.*< location: (https?://[^/]+).*|\1|')
-    show "✅ Sed extraction: $extracted"
-  else
-    show "❌ No input for sed test"
-  fi
-  
-  rm -f /tmp/test_curl_output
-}
-
-# Alternative pattern matching approaches
-try_alternative_patterns() {
-  show "🔄 Trying alternative pattern matching..."
-  
-  # Use awk instead of grep+sed
-  dex_url_awk=$(awk '/< location:.*dex/ { print $3; exit }' /tmp/auth_step1.log)
-  
-  # Use basic grep instead of extended regex
-  dex_url_basic=$(grep "< location:" /tmp/auth_step1.log | grep "dex" | tail -1)
-  
-  show "AWK result: $dex_url_awk"
-  show "Basic grep result: $dex_url_basic"
-}
+# These debug functions are no longer needed since we use stable curl --write-out
+# instead of parsing version-dependent verbose output
 
 # ========== Prerequisites ==========
 
@@ -238,9 +164,6 @@ try_alternative_patterns() {
   show "🔍 Testing complete OIDC authentication flow..."
   show "  → Flow: httpbin → Pomerium → Dex → LDAP → JWT → httpbin"
   
-  # Validate CI environment tools first
-  validate_tools || { show "Tool validation failed"; return 1; }
-  test_regex_patterns
   
   # CRITICAL: Clean session state to prevent pollution
   rm -f ./cookies.txt
@@ -248,52 +171,34 @@ try_alternative_patterns() {
   
   # Step 1: Initial access to httpbin - should redirect to Dex via Pomerium
   show "  → Step 1: Accessing httpbin to initiate authentication flow"
-  curl -k -v -L -c ./cookies.txt --max-time 30 \
-      "https://httpbin.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/" \
-      > /tmp/auth_step1.log 2>&1
+  FINAL_URL=$(curl -k -L -s -c ./cookies.txt --max-time 30 \
+      -w '%{url_effective}' -o /tmp/auth_step1_body.log \
+      "https://httpbin.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/")
   
-  # Step 2: Parse Dex login form details from the redirected response
-  show "  → Step 2: Parsing Dex login form"
+  show "  → Final URL after redirects: $FINAL_URL"
   
-  # Debug: Show contents of auth_step1.log for troubleshooting
-  show "🐛 Debug: Contents of auth_step1.log (first 20 lines):"
-  show "$(head -20 /tmp/auth_step1.log || echo 'File not found or empty')"
+  # Step 2: Parse Dex login form details from the final URL
+  show "  → Step 2: Extracting Dex base URL from final destination"
   
-  show "🐛 Debug: Looking for location headers:"
-  show "$(grep -i location /tmp/auth_step1.log || echo 'No location headers found')"
+  # Extract Dex base URL directly from final URL (stable across curl versions)
+  dex_base_url=$(echo "$FINAL_URL" | sed -E 's|^(https?://[^/]+).*|\1|')
+  show "  → Extracted Dex base URL: '$dex_base_url'"
   
-  show "🐛 Debug: Looking for dex references:"
-  show "$(grep -i dex /tmp/auth_step1.log || echo 'No dex references found')"
-  
-  # Extract Dex base URL from Location header - look for dex domain (final redirect in chain)
-  show "🐛 Debug: Attempting to extract dex_base_url..."
-  dex_base_url=$(grep -E '< location: https?://dex[^/]*' /tmp/auth_step1.log | tail -n 1 | sed -E 's|.*< location: (https?://[^/]+).*|\1|')
-  show "🐛 Debug: Extracted dex_base_url: '$dex_base_url'"
-  
-  # If primary pattern matching failed, try alternatives
-  if [ -z "$dex_base_url" ]; then
-    show "🔄 Primary pattern failed, trying alternatives..."
-    try_alternative_patterns
-    
-    # Try alternative extraction methods if still empty
-    if [ -z "$dex_base_url" ]; then
-      show "❌ All pattern matching methods failed"
-      show "📋 Full auth_step1.log content:"
-      show "$(cat /tmp/auth_step1.log)"
-      return 1
-    fi
+  # Validate that we got a Dex URL
+  if [[ "$dex_base_url" != *"dex"* ]]; then
+    show "❌ Expected Dex URL but got: $dex_base_url"
+    show "📋 Full final URL: $FINAL_URL"
+    return 1
   fi
   
-  # Get the final response body which should contain the Dex login form - the curl log already shows the HTML
-  # Extract the HTML content from the curl verbose output (from line that starts with <!DOCTYPE)
-  dex_form_html=$(sed -n '/<!DOCTYPE html>/,/<\/html>/p' /tmp/auth_step1.log)
+  # Get the final response body which should contain the Dex login form
+  dex_form_html=$(cat /tmp/auth_step1_body.log)
   
-  show "🐛 Debug: Extracted HTML form content (first 10 lines):"
-  show "$(echo "$dex_form_html" | head -10 || echo 'No HTML content found')"
+  show "  → Retrieved Dex login form HTML ($(echo "$dex_form_html" | wc -l) lines)"
   
   # Extract form action from HTML and decode HTML entities
   form_action=$(echo "$dex_form_html" | grep -oE 'action="[^"]*"' | sed 's/action="//;s/"//' | sed 's/&amp;/\&/g')
-  show "🐛 Debug: Extracted form_action: '$form_action'"
+  show "  → Extracted form action: '$form_action'"
   
   # For this Dex setup, there's no CSRF token needed - just username/password
   csrf_token=""
@@ -306,7 +211,7 @@ try_alternative_patterns() {
     dex_login_url="$form_action"
   fi
   
-  show "🐛 Debug: Final dex_login_url: '$dex_login_url'"
+  show "  → Dex login URL: '$dex_login_url'"
   
   # Step 3: Submit LDAP credentials to Dex
   show "  → Step 3: Submitting credentials to Dex"
@@ -342,7 +247,7 @@ try_alternative_patterns() {
   show "  📊 Response contains httpbin headers with Pomerium authentication"
   
   # Clean up test artifacts
-  rm -f ./cookies.txt /tmp/auth_step1.log /tmp/auth_step3.log /tmp/auth_final_response.json
+  rm -f ./cookies.txt /tmp/auth_step1_body.log /tmp/auth_step3.log /tmp/auth_final_response.json
   show "  → Cleaned up test artifacts"
 }
 
