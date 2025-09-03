@@ -21,8 +21,13 @@ detect_machine_ip() {
     
     case "$OS" in
         "Linux")
-            # On Linux, use 'ip route get' to find the source IP for reaching external destinations
-            MACHINE_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' | head -n1)
+            # Use hostname -I as primary method (works in containers)
+            MACHINE_IP=$(hostname -I 2>/dev/null | awk '{print $1}' | head -n1)
+            
+            # Fallback to ip route if hostname -I fails  
+            if [ -z "$MACHINE_IP" ]; then
+                MACHINE_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' | head -n1)
+            fi
             ;;
         "Darwin")
             # On macOS, use 'route get' and extract interface, then get IP from ifconfig
