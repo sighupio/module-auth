@@ -175,6 +175,16 @@ steps:
       GITHUB_TOKEN:
         from_secret: github_token
     commands:
+      - |
+        mise use kubectl@${KUBECTL_VERSION} kind@0.29.0
+        eval "$(mise activate bash --shims)"
+      - "echo '🐛 DEBUG: Current working directory:'"
+      - pwd
+      - "echo '🐛 DEBUG: Docker containers running:'"
+      - "docker ps --filter 'label=io.x-k8s.kind.cluster' --format 'table {{.Names}}\\t{{.Status}}\\t{{.Labels}}'"
+      - "echo '🐛 DEBUG: Kind clusters visible:'"
+      - kind get clusters
+      - "echo '🐛 DEBUG: Attempting to delete cluster with cleanup script'"
       - ./scripts/cleanup-e2e-cluster.sh
     when:
       status:
