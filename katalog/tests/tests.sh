@@ -160,12 +160,12 @@ set -o pipefail
   show "  → Flow: httpbin → Pomerium → Dex → LDAP → JWT → httpbin"
   
   # CRITICAL: Clean session state to prevent pollution
-  rm -f /tmp/cookies.txt
+  rm -f ./cookies.txt
   show "  → Cleaned session state"
   
   # Step 1: Initial access to httpbin - should redirect to Dex via Pomerium
   show "  → Step 1: Accessing httpbin to initiate authentication flow"
-  curl -k -v -L -c /tmp/cookies.txt -b /tmp/cookies.txt --max-time 30 \
+  curl -k -v -L -c ./cookies.txt -b ./cookies.txt --max-time 30 \
       "https://httpbin.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/" \
       > /tmp/auth_step1.log 2>&1
   
@@ -182,17 +182,21 @@ set -o pipefail
   show "🐛 Debug: Looking for dex references:"
   show "$(grep -i dex /tmp/auth_step1.log || echo 'No dex references found')"
   
-  # Extract Dex base URL from Location header - look for dex domain
+  # Extract Dex base URL from Location header - look for dex domain (final redirect in chain)
   show "🐛 Debug: Attempting to extract dex_base_url..."
-  dex_base_url=$(grep -E '< location: https?://dex[^/]*' /tmp/auth_step1.log | head -n 1 | sed -E 's|.*< location: (https?://[^/]+).*|\1|')
+  dex_base_url=$(grep -E '< location: https?://dex[^/]*' /tmp/auth_step1.log | tail -n 1 | sed -E 's|.*< location: (https?://[^/]+).*|\1|')
   show "🐛 Debug: Extracted dex_base_url: '$dex_base_url'"
   
   # Get the final response body which should contain the Dex login form - the curl log already shows the HTML
   # Extract the HTML content from the curl verbose output (from line that starts with <!DOCTYPE)
   dex_form_html=$(sed -n '/<!DOCTYPE html>/,/<\/html>/p' /tmp/auth_step1.log)
   
+  show "🐛 Debug: Extracted HTML form content (first 10 lines):"
+  show "$(echo "$dex_form_html" | head -10 || echo 'No HTML content found')"
+  
   # Extract form action from HTML and decode HTML entities
   form_action=$(echo "$dex_form_html" | grep -oE 'action="[^"]*"' | sed 's/action="//;s/"//' | sed 's/&amp;/\&/g')
+  show "🐛 Debug: Extracted form_action: '$form_action'"
   
   # For this Dex setup, there's no CSRF token needed - just username/password
   csrf_token=""
@@ -205,9 +209,11 @@ set -o pipefail
     dex_login_url="$form_action"
   fi
   
+  show "🐛 Debug: Final dex_login_url: '$dex_login_url'"
+  
   # Step 3: Submit LDAP credentials to Dex
   show "  → Step 3: Submitting credentials to Dex"
-  curl -k -v -L -c /tmp/cookies.txt -b /tmp/cookies.txt --max-time 30 \
+  curl -k -v -L -c ./cookies.txt -b ./cookies.txt --max-time 30 \
       -X POST \
       -H "Content-Type: application/x-www-form-urlencoded" \
       --data-urlencode "login=user1" \
@@ -219,7 +225,7 @@ set -o pipefail
   show "  → Step 4: Verifying authenticated access to httpbin/headers"
   
   # Access httpbin/headers with session cookies - should return 200 OK
-  final_response=$(curl -k -s -L -w "%{http_code}" -c /tmp/cookies.txt -b /tmp/cookies.txt --max-time 30 \
+  final_response=$(curl -k -s -L -w "%{http_code}" -c ./cookies.txt -b ./cookies.txt --max-time 30 \
       "https://httpbin.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/headers" \
       -o /tmp/auth_final_response.json 2>/dev/null)
   
@@ -239,7 +245,7 @@ set -o pipefail
   show "  📊 Response contains httpbin headers with Pomerium authentication"
   
   # Clean up test artifacts
-  rm -f /tmp/cookies.txt /tmp/auth_step1.log /tmp/auth_step3.log /tmp/auth_final_response.json
+  rm -f ./cookies.txt /tmp/auth_step1.log /tmp/auth_step3.log /tmp/auth_final_response.json
   show "  → Cleaned up test artifacts"
 }
 
