@@ -2,6 +2,64 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+name: Debug Network Environment
+kind: pipeline
+type: docker
+clone:
+  depth: 1
+steps:
+  - name: network-debug
+    image: quay.io/sighup/mise:v2025.4.4
+    pull: always
+    network_mode: host
+    commands:
+      - |
+        echo "=== Network Debug Information ==="
+        echo "1. Basic connectivity test:"
+        ping -c 2 1.1.1.1 || echo "No external connectivity"
+        echo ""
+        echo "2. Available network commands:"
+        which ip || echo "ip command not available"
+        which hostname || echo "hostname command not available" 
+        which ifconfig || echo "ifconfig command not available"
+        echo ""
+        echo "3. Route table analysis:"
+        ip route show 2>/dev/null || echo "ip route failed"
+        echo ""
+        echo "4. Testing original detection command:"
+        ip route get 1.1.1.1 2>/dev/null || echo "ip route get 1.1.1.1 failed"
+        echo ""
+        echo "5. Field-by-field analysis of route get output:"
+        ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) print "Field " i ": " $i}' || echo "Route analysis failed"
+        echo ""
+        echo "6. Alternative hostname methods:"
+        hostname -I 2>/dev/null || echo "hostname -I failed"
+        hostname -i 2>/dev/null || echo "hostname -i failed"
+        echo ""
+        echo "7. Network interfaces:"
+        ip addr show 2>/dev/null || echo "ip addr show failed"
+        echo ""
+        echo "8. Test various IP detection methods:"
+        echo "Method A (original field 7):" 
+        ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' | head -n1 || echo "Failed"
+        echo "Method B (src field 5):"
+        ip route get 1.1.1.1 2>/dev/null | awk '/src/ {print $5; exit}' | head -n1 || echo "Failed"  
+        echo "Method C (field 9):"
+        ip route get 1.1.1.1 2>/dev/null | awk '{print $9; exit}' | head -n1 || echo "Failed"
+        echo "Method D (8.8.8.8 field 7):"
+        ip route get 8.8.8.8 2>/dev/null | awk '{print $7; exit}' | head -n1 || echo "Failed"
+        echo "Method E (hostname -I):"
+        hostname -I 2>/dev/null | awk '{print $1}' || echo "Failed"
+        echo "Method F (ip addr global):"
+        ip addr show 2>/dev/null | awk '/inet.*scope global/ {gsub(/\/.*/, "", $2); print $2; exit}' || echo "Failed"
+        echo ""
+        echo "9. Environment variables:"
+        echo "CI: $CI"
+        echo "DRONE: $DRONE"
+        echo "NODE_NAME: $NODE_NAME"
+        echo "HOSTNAME: $HOSTNAME"
+
+---
 name: Check for license presence
 kind: pipeline
 type: docker
