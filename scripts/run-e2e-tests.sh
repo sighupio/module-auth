@@ -5,45 +5,44 @@
 
 set -e
 
-echo "🚀 Starting E2E Test Suite for Module Auth"
-echo "=========================================="
+echo "🧪 Running E2E Test Suite for Module Auth"
+echo "======================================="
 
-# Configuration (CI provides these, local uses defaults from mise.toml)
+# Configuration (must match cluster creation script)
 KUBE_VERSION="${KUBE_VERSION:-1.33.0}"
-export DRONE_BUILD_NUMBER="${DRONE_BUILD_NUMBER:-9999}"
-export DRONE_REPO_NAME="${DRONE_REPO_NAME:-module-auth}"
+DRONE_BUILD_NUMBER="${DRONE_BUILD_NUMBER:-9999}"
+DRONE_REPO_NAME="${DRONE_REPO_NAME:-module-auth}"
 CLUSTER_NAME="${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-${KUBE_VERSION}"
 KUBECONFIG_PATH="${KUBECONFIG:-$(pwd)/kubeconfig-e2e}"
 
-# Cleanup function
-cleanup() {
-  echo "🧹 Cleaning up..."
-  kind delete cluster --name "${CLUSTER_NAME}" 2>/dev/null || true
-  rm -f "${KUBECONFIG_PATH}"
-  rm -f "config-${CLUSTER_NAME}.yaml"
-  rm -f "env-${CLUSTER_NAME}.env"
-  rm -rf /tmp/test-certs
-}
+# Verify cluster exists and kubeconfig is available
+if [ ! -f "${KUBECONFIG_PATH}" ]; then
+  echo "❌ Error: Kubeconfig not found at ${KUBECONFIG_PATH}"
+  echo "   Please run scripts/create-e2e-cluster.sh first"
+  exit 1
+fi
 
-# Trap to ensure cleanup on exit (success or failure)
-trap cleanup EXIT
-
-echo "📦 Step 1: Creating Kind cluster (K8s ${KUBE_VERSION})..."
-./scripts/generate-kind-config.sh ${KUBE_VERSION}
-kind create cluster --config "./config-${CLUSTER_NAME}.yaml" --name "${CLUSTER_NAME}"
-
-echo "📋 Step 2: Setting up kubeconfig..."
-kind get kubeconfig --name "${CLUSTER_NAME}" > "${KUBECONFIG_PATH}"
 export KUBECONFIG="${KUBECONFIG_PATH}"
 
-echo "⏳ Step 3: Waiting for cluster to be ready..."
-until kubectl get serviceaccount default > /dev/null 2>&1; do 
-  echo "   Waiting for control-plane..." 
-  sleep 2
-done
+# Verify cluster is accessible
+if ! kubectl get serviceaccount default > /dev/null 2>&1; then
+  echo "❌ Error: Cannot access cluster ${CLUSTER_NAME}"
+  echo "   Please ensure the cluster is running"
+  exit 1
+fi
 
-echo "🧪 Step 4: Running E2E tests..."
-source "./env-${CLUSTER_NAME}.env"
+# Source environment variables from cluster creation
+ENV_FILE="./env-${CLUSTER_NAME}.env"
+if [ ! -f "${ENV_FILE}" ]; then
+  echo "❌ Error: Environment file not found at ${ENV_FILE}"
+  echo "   Please run scripts/create-e2e-cluster.sh first"
+  exit 1
+fi
+
+echo "📋 Loading environment from ${ENV_FILE}..."
+source "${ENV_FILE}"
+
+echo "🧪 Running BATS test suite..."
 bats ./katalog/tests/tests.sh
 
 echo "✅ E2E tests completed successfully!"

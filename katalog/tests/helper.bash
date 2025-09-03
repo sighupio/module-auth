@@ -8,6 +8,7 @@
 # - check_*_ready: Validate that different Kubernetes resource types are ready
 # - loop_it: Retry mechanism for test conditions with configurable timeout
 # - info: Display test progress information
+# - show: Display visible messages during BATS test execution
 
 # shellcheck disable=SC2086,SC2154,SC2034
 
@@ -33,6 +34,11 @@ delete (){
 
 info(){
   echo -e "${BATS_TEST_NUMBER}: ${BATS_TEST_DESCRIPTION}" >&3
+}
+
+# Display visible messages during BATS test execution
+show() {
+  echo "# $*" >&3
 }
 
 loop_it(){
@@ -87,4 +93,23 @@ check_job_ready() {
   local succeeded
   succeeded=$(kubectl get job "$name" -n "$namespace" -o jsonpath='{.status.succeeded}' 2>/dev/null || echo "0")
   [ "$succeeded" -eq 1 ]
+}
+
+check_http_endpoint_ready() {
+  # Generic function to check if HTTP endpoint returns acceptable status codes
+  local url=$1
+  local acceptable_codes=$2
+  local status_code
+  
+  # Get HTTP status code
+  status_code=$(curl -k -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" 2>/dev/null || echo "000")
+  
+  # Check if status code matches any acceptable code
+  for code in $acceptable_codes; do
+    if [ "$status_code" = "$code" ]; then
+      return 0
+    fi
+  done
+  
+  return 1
 }
