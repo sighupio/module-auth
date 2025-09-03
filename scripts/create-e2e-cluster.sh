@@ -33,25 +33,38 @@ done
 if [ "${DRONE_BUILD_NUMBER:-9999}" != "9999" ]; then
   echo "🔧 Drone CI detected (build ${DRONE_BUILD_NUMBER}), updating environment with Kind node IP to avoid hairpinning..."
   
-  # Wait for nodes to be ready and get internal IP
-  until NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null) && [ -n "$NODE_IP" ]; do
-    echo "   Waiting for node IP to be available..."
+  # Prefer worker nodes (where ingress runs), fallback to control-plane
+  until WORKER_NODE_IP=$(kubectl get nodes -l node-role.kubernetes.io/control-plane!=true -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null); do
+    echo "   Waiting for worker nodes to be available..."
     sleep 2
   done
   
-  # Update the environment file with node IP
+  if [ -n "$WORKER_NODE_IP" ]; then
+    NODE_IP=$WORKER_NODE_IP
+    NODE_TYPE="worker"
+    echo "   Using worker node IP (where ingress runs): ${NODE_IP}"
+  else
+    # Fallback to control-plane (single-node Kind clusters)
+    until NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null) && [ -n "$NODE_IP" ]; do
+      echo "   Waiting for control-plane node IP to be available..."
+      sleep 2
+    done
+    NODE_TYPE="control-plane"
+    echo "   Using control-plane node IP (single-node setup): ${NODE_IP}"
+  fi
+  
+  # Update environment file with node IP (port is already correct from generate-kind-config.sh)
   ENV_FILE="./env-${CLUSTER_NAME}.env"
   echo "   Original MACHINE_IP: $(grep MACHINE_IP= ${ENV_FILE} | cut -d'=' -f2)"
-  echo "   Using Kind node IP: ${NODE_IP}"
   
-  # Update both MACHINE_IP and MACHINE_IP_NIP_DOMAIN
+  # Update only IP (port is set correctly from generate-kind-config.sh)
   sed -i.backup "s/MACHINE_IP=.*/MACHINE_IP=${NODE_IP}/" "${ENV_FILE}"
   sed -i.backup "s/MACHINE_IP_NIP_DOMAIN=.*/MACHINE_IP_NIP_DOMAIN=${NODE_IP}.nip.io/" "${ENV_FILE}"
   
   # Clean up backup file
   rm -f "${ENV_FILE}.backup"
   
-  echo "✅ Environment updated with Kind node IP: ${NODE_IP}"
+  echo "✅ Environment updated with Kind ${NODE_TYPE} node IP: ${NODE_IP}"
 else
   echo "🏠 Local environment detected (build 9999), using host machine IP"
 fi

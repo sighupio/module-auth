@@ -109,7 +109,16 @@ fi
 
 # Calculate unique HTTPS port using concatenated version (major.minor.patch), DRONE_BUILD_NUMBER, and default HTTPS port value
 # Version concatenation provides natural separation between different Kubernetes versions
-UNIQUE_HTTPS_PORT=$((VERSION_CONCAT + DRONE_BUILD_NUMBER + DEFAULT_HTTPS_PORT))
+# CI uses fixed NodePort for direct access, local uses calculated port for host mapping
+if [ "${DRONE_BUILD_NUMBER:-9999}" != "9999" ]; then
+  # CI: Use nginx NodePort directly (no host mapping needed)
+  UNIQUE_HTTPS_PORT=31443
+  echo "🔧 CI environment: Using nginx NodePort ${UNIQUE_HTTPS_PORT}"
+else
+  # Local: Calculate unique port as usual for host mapping
+  UNIQUE_HTTPS_PORT=$((VERSION_CONCAT + DRONE_BUILD_NUMBER + DEFAULT_HTTPS_PORT))
+  echo "🏠 Local environment: Using calculated port ${UNIQUE_HTTPS_PORT}"
+fi
 
 # Ensure unique port is greater than 1024 and less than 30000
 if [ "$UNIQUE_HTTPS_PORT" -le 1024 ] || [ "$UNIQUE_HTTPS_PORT" -ge 30000 ]; then
