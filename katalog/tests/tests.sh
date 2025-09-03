@@ -172,8 +172,20 @@ set -o pipefail
   # Step 2: Parse Dex login form details from the redirected response
   show "  → Step 2: Parsing Dex login form"
   
+  # Debug: Show contents of auth_step1.log for troubleshooting
+  show "🐛 Debug: Contents of auth_step1.log (first 20 lines):"
+  show "$(head -20 /tmp/auth_step1.log || echo 'File not found or empty')"
+  
+  show "🐛 Debug: Looking for location headers:"
+  show "$(grep -i location /tmp/auth_step1.log || echo 'No location headers found')"
+  
+  show "🐛 Debug: Looking for dex references:"
+  show "$(grep -i dex /tmp/auth_step1.log || echo 'No dex references found')"
+  
   # Extract Dex base URL from Location header - look for dex domain
+  show "🐛 Debug: Attempting to extract dex_base_url..."
   dex_base_url=$(grep -E '< location: https?://dex[^/]*' /tmp/auth_step1.log | head -n 1 | sed -E 's|.*< location: (https?://[^/]+).*|\1|')
+  show "🐛 Debug: Extracted dex_base_url: '$dex_base_url'"
   
   # Get the final response body which should contain the Dex login form - the curl log already shows the HTML
   # Extract the HTML content from the curl verbose output (from line that starts with <!DOCTYPE)
