@@ -156,7 +156,7 @@ steps:
         from_secret: github_token
     commands:
       - |
-        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2
+        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
         eval "$(mise activate bash --shims)"
       - ./scripts/run-e2e-tests.sh
 
@@ -254,7 +254,7 @@ steps:
         from_secret: github_token
     commands:
       - |
-        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2
+        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
         eval "$(mise activate bash --shims)"
       - ./scripts/run-e2e-tests.sh
 
@@ -352,7 +352,7 @@ steps:
         from_secret: github_token
     commands:
       - |
-        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2
+        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
         eval "$(mise activate bash --shims)"
       - ./scripts/run-e2e-tests.sh
 
@@ -450,7 +450,7 @@ steps:
         from_secret: github_token
     commands:
       - |
-        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2
+        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
         eval "$(mise activate bash --shims)"
       - ./scripts/run-e2e-tests.sh
 
@@ -548,7 +548,7 @@ steps:
         from_secret: github_token
     commands:
       - |
-        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2
+        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
         eval "$(mise activate bash --shims)"
       - ./scripts/run-e2e-tests.sh
 

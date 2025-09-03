@@ -19,6 +19,7 @@ bats = "1.11.0"
 drone = "1.9.0"
 kapp = "0.64.2"
 "ubi:google/addlicense" = "v1.1.1"
+envsubst = "1.4.3"
 
 # Development task definitions
 [tasks.add-license]
