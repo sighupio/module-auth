@@ -120,10 +120,16 @@ else
   echo "🏠 Local environment: Using calculated port ${UNIQUE_HTTPS_PORT}"
 fi
 
-# Ensure unique port is greater than 1024 and less than 30000
-if [ "$UNIQUE_HTTPS_PORT" -le 1024 ] || [ "$UNIQUE_HTTPS_PORT" -ge 30000 ]; then
-    echo "Error: Calculated HTTPS port must be greater than 1024 and less than 30000. HTTPS_PORT = $UNIQUE_HTTPS_PORT"
-    exit 4
+# Ensure unique port is greater than 1024 and less than 30000 (skip validation for CI NodePorts)
+if [ "${DRONE_BUILD_NUMBER:-9999}" != "9999" ]; then
+    # CI: Skip validation for fixed NodePort (31443 is valid NodePort range)
+    echo "🔧 CI environment: Skipping port validation for NodePort ${UNIQUE_HTTPS_PORT}"
+else
+    # Local: Validate calculated port range
+    if [ "$UNIQUE_HTTPS_PORT" -le 1024 ] || [ "$UNIQUE_HTTPS_PORT" -ge 30000 ]; then
+        echo "Error: Calculated HTTPS port must be greater than 1024 and less than 30000. HTTPS_PORT = $UNIQUE_HTTPS_PORT"
+        exit 4
+    fi
 fi
 
 CLUSTER_NAME="${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-${KUBE_VERSION#v}"
