@@ -16,16 +16,3 @@ secretGenerator:
       - config.yml=secrets/config.yml
 
 # SSL cert patches (hostAliases removed - obsolete with machine IP networking)
-
-# Host network patch to fix hairpinning issue in CI
-patches:
-  - target:
-      kind: Deployment
-      name: dex
-    patch: |-
-      - op: add
-        path: /spec/template/spec/hostNetwork
-        value: true
-      - op: add
-        path: /spec/template/spec/dnsPolicy
-        value: ClusterFirstWithHostNet

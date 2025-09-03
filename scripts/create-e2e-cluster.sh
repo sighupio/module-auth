@@ -29,6 +29,33 @@ until kubectl get serviceaccount default > /dev/null 2>&1; do
   sleep 2
 done
 
+# Step 4: Update environment with CI-specific IP if needed
+if [ "${DRONE_BUILD_NUMBER:-9999}" != "9999" ]; then
+  echo "🔧 Drone CI detected (build ${DRONE_BUILD_NUMBER}), updating environment with Kind node IP to avoid hairpinning..."
+  
+  # Wait for nodes to be ready and get internal IP
+  until NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null) && [ -n "$NODE_IP" ]; do
+    echo "   Waiting for node IP to be available..."
+    sleep 2
+  done
+  
+  # Update the environment file with node IP
+  ENV_FILE="./env-${CLUSTER_NAME}.env"
+  echo "   Original MACHINE_IP: $(grep MACHINE_IP= ${ENV_FILE} | cut -d'=' -f2)"
+  echo "   Using Kind node IP: ${NODE_IP}"
+  
+  # Update both MACHINE_IP and MACHINE_IP_NIP_DOMAIN
+  sed -i.backup "s/MACHINE_IP=.*/MACHINE_IP=${NODE_IP}/" "${ENV_FILE}"
+  sed -i.backup "s/MACHINE_IP_NIP_DOMAIN=.*/MACHINE_IP_NIP_DOMAIN=${NODE_IP}.nip.io/" "${ENV_FILE}"
+  
+  # Clean up backup file
+  rm -f "${ENV_FILE}.backup"
+  
+  echo "✅ Environment updated with Kind node IP: ${NODE_IP}"
+else
+  echo "🏠 Local environment detected (build 9999), using host machine IP"
+fi
+
 echo "✅ E2E cluster created successfully!"
 echo "   Cluster: ${CLUSTER_NAME}"
 echo "   Kubeconfig: ${KUBECONFIG_PATH}"
