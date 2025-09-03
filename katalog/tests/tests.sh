@@ -158,6 +158,31 @@ set -o pipefail
 
 # ========== Authentication Flow Validation ==========
 
+@test "debug pod-to-ingress connectivity from within cluster" {
+  info
+  show "🔍 Testing pod-to-ingress connectivity from within cluster..."
+  show "  → Running debug pod with curl to test all ingresses"
+  
+  # Test each ingress endpoint from inside a pod
+  for endpoint in "dex" "pomerium" "httpbin"; do
+    show "  → Testing ${endpoint} ingress connectivity..."
+    
+    kubectl run disposable-${endpoint} \
+      --image=quay.io/sighup/debug-tools:bookworm \
+      --restart=Never --rm -i --timeout=30s \
+      -- /bin/sh -c "
+        echo 'Testing ${endpoint}.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}...'
+        curl -k -v --max-time 10 \
+          -w 'RESULT: HTTP_%{http_code} URL:%{url_effective} TIME:%{time_total}s\\n' \
+          https://${endpoint}.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/ \
+          2>&1 || echo 'CURL_FAILED: \$?'
+      " 2>&1 | while read line; do 
+        show "    ${endpoint^^}: $line"
+      done
+  done
+  
+  show "✅ Pod-to-ingress connectivity test completed"
+}
 
 @test "validate complete OIDC authentication flow with session handling" {
   info
