@@ -9,6 +9,85 @@ load helper
 
 set -o pipefail
 
+# ========== Tool Validation Functions ==========
+
+# Tool validation function for CI environment debugging
+validate_tools() {
+  show "🔧 Validating CI environment tools..."
+  
+  # Check core tools existence
+  for tool in curl grep sed head tail; do
+    if command -v "$tool" >/dev/null 2>&1; then
+      show "✅ $tool: $(command -v $tool)"
+    else
+      show "❌ Missing: $tool"
+      return 1
+    fi
+  done
+  
+  # Check tool versions and capabilities
+  show "📋 Tool versions:"
+  show "  curl: $(curl --version | head -1)"
+  show "  grep: $(grep --version 2>&1 | head -1 || echo 'No version info')"
+  show "  sed: $(sed --version 2>&1 | head -1 || echo 'No version info')"
+  
+  # Test GNU vs BSD detection
+  if grep --version 2>/dev/null | grep -q "GNU"; then
+    show "📍 GNU grep detected"
+  else
+    show "📍 BSD/other grep detected"
+  fi
+  
+  if sed --version 2>/dev/null | grep -q "GNU"; then
+    show "📍 GNU sed detected"
+  else
+    show "📍 BSD/other sed detected"
+  fi
+}
+
+# Test regex pattern functionality
+test_regex_patterns() {
+  show "🧪 Testing regex patterns..."
+  
+  # Create test data similar to the failing curl output
+  cat > /tmp/test_curl_output <<'EOF'
+< location: https://pomerium.116.202.228.246.nip.io:4048/.pomerium/sign_in?params
+< location: https://dex.116.202.228.246.nip.io:4048/auth?params
+EOF
+  
+  # Test the failing pattern
+  result=$(grep -E '< location: https?://dex[^/]*' /tmp/test_curl_output | tail -n 1)
+  if [ -n "$result" ]; then
+    show "✅ Dex pattern works: $result"
+  else
+    show "❌ Dex pattern fails"
+  fi
+  
+  # Test sed extraction
+  if [ -n "$result" ]; then
+    extracted=$(echo "$result" | sed -E 's|.*< location: (https?://[^/]+).*|\1|')
+    show "✅ Sed extraction: $extracted"
+  else
+    show "❌ No input for sed test"
+  fi
+  
+  rm -f /tmp/test_curl_output
+}
+
+# Alternative pattern matching approaches
+try_alternative_patterns() {
+  show "🔄 Trying alternative pattern matching..."
+  
+  # Use awk instead of grep+sed
+  dex_url_awk=$(awk '/< location:.*dex/ { print $3; exit }' /tmp/auth_step1.log)
+  
+  # Use basic grep instead of extended regex
+  dex_url_basic=$(grep "< location:" /tmp/auth_step1.log | grep "dex" | tail -1)
+  
+  show "AWK result: $dex_url_awk"
+  show "Basic grep result: $dex_url_basic"
+}
+
 # ========== Prerequisites ==========
 
 
@@ -159,13 +238,17 @@ set -o pipefail
   show "🔍 Testing complete OIDC authentication flow..."
   show "  → Flow: httpbin → Pomerium → Dex → LDAP → JWT → httpbin"
   
+  # Validate CI environment tools first
+  validate_tools || { show "Tool validation failed"; return 1; }
+  test_regex_patterns
+  
   # CRITICAL: Clean session state to prevent pollution
   rm -f ./cookies.txt
   show "  → Cleaned session state"
   
   # Step 1: Initial access to httpbin - should redirect to Dex via Pomerium
   show "  → Step 1: Accessing httpbin to initiate authentication flow"
-  curl -k -v -L -c ./cookies.txt -b ./cookies.txt --max-time 30 \
+  curl -k -v -L -c ./cookies.txt --max-time 30 \
       "https://httpbin.${MACHINE_IP_NIP_DOMAIN}:${EXTERNAL_PORT}/" \
       > /tmp/auth_step1.log 2>&1
   
@@ -186,6 +269,20 @@ set -o pipefail
   show "🐛 Debug: Attempting to extract dex_base_url..."
   dex_base_url=$(grep -E '< location: https?://dex[^/]*' /tmp/auth_step1.log | tail -n 1 | sed -E 's|.*< location: (https?://[^/]+).*|\1|')
   show "🐛 Debug: Extracted dex_base_url: '$dex_base_url'"
+  
+  # If primary pattern matching failed, try alternatives
+  if [ -z "$dex_base_url" ]; then
+    show "🔄 Primary pattern failed, trying alternatives..."
+    try_alternative_patterns
+    
+    # Try alternative extraction methods if still empty
+    if [ -z "$dex_base_url" ]; then
+      show "❌ All pattern matching methods failed"
+      show "📋 Full auth_step1.log content:"
+      show "$(cat /tmp/auth_step1.log)"
+      return 1
+    fi
+  fi
   
   # Get the final response body which should contain the Dex login form - the curl log already shows the HTML
   # Extract the HTML content from the curl verbose output (from line that starts with <!DOCTYPE)
