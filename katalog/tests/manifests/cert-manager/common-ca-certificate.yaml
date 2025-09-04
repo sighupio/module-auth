@@ -1,0 +1,27 @@
+# Copyright (c) 2017-present SIGHUP s.r.l All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: common-ca
+  namespace: cert-manager
+spec:
+  secretName: common-ca-tls
+  commonName: "ReeVo Test CA"
+  isCA: true
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  subject:
+    organizationalUnits:
+      - "ReeVo Test CA"
+    countries:
+      - "IT"
+    localities:
+      - "Milan"
+    organizations:
+      - "ReeVo"
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer

@@ -9,6 +9,17 @@ insecure_server: true
 autocert: false
 
 routes:
+  # httpbin test backend - protected by authentication
+  - from: https://httpbin.${MACHINE_IP_NIP_DOMAIN}
+    to: http://httpbin.pomerium.svc.cluster.local:80
+    preserve_host_header: true
+    pass_identity_headers: true
+    policy:
+      - allow:
+          and:
+            - authenticated_user: true
+    
+  # grafana example route (for reference)
   - from: https://grafana.127.0.0.1.nip.io
     to: http://grafana.monitoring.svc.cluster.local:3000
     allow_websockets: true
