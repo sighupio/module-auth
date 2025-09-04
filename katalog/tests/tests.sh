@@ -17,7 +17,7 @@ set -o pipefail
   
   # Generate Dex config from template
   show "  → Processing Dex configuration..."
-  envsubst < katalog/tests/manifests/dex/resources/config.yml.template > katalog/tests/manifests/dex/secrets/config.yml
+  envsubst < katalog/tests/manifests/dex/secrets/config.yml.template > katalog/tests/manifests/dex/secrets/config.yml
   
   # Generate Dex ingress from template
   show "  → Processing Dex ingress..."
@@ -59,12 +59,30 @@ set -o pipefail
 
 # ========== Unified Component Validation ==========
 
-@test "validate cert-manager deployment" {
+@test "validate cert-manager core deployment ready" {
   info
   test(){
-    kubectl get deployment -n cert-manager cert-manager >/dev/null 2>&1 &&
-    kubectl get deployment -n cert-manager cert-manager-cainjector >/dev/null 2>&1 &&
-    kubectl get deployment -n cert-manager cert-manager-webhook >/dev/null 2>&1
+    check_deploy_ready "cert-manager" "cert-manager"
+  }
+  loop_it test 60 5
+  status=${loop_it_result}
+  [[ "$status" -eq 0 ]]
+}
+
+@test "validate cert-manager cainjector deployment ready" {
+  info
+  test(){
+    check_deploy_ready "cert-manager-cainjector" "cert-manager"
+  }
+  loop_it test 60 5
+  status=${loop_it_result}
+  [[ "$status" -eq 0 ]]
+}
+
+@test "validate cert-manager webhook deployment ready" {
+  info
+  test(){
+    check_deploy_ready "cert-manager-webhook" "cert-manager"
   }
   loop_it test 60 5
   status=${loop_it_result}

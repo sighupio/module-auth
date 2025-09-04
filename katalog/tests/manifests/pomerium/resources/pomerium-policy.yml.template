@@ -23,6 +23,7 @@ routes:
   - from: https://grafana.127.0.0.1.nip.io
     to: http://grafana.monitoring.svc.cluster.local:3000
     allow_websockets: true
+    host_rewrite_header: true
     preserve_host_header: true
     pass_identity_headers: true
     policy:
