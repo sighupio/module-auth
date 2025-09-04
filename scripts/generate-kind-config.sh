@@ -7,11 +7,11 @@
 # It detects the machine's IP address for use with nip.io magic DNS to enable unified URLs.
 # It accepts Kubernetes version and HTTPS port either as command line arguments or from environment variables.
 # Usage: 
-#   Command Line: sh generate-template.sh [v]X.Y.Z [DEFAULT_HTTPS_PORT]
+#   Command Line: sh generate-kind-config.sh [v]X.Y.Z [DEFAULT_HTTPS_PORT]
 #   Environment Variables: KUBE_VERSION, HTTPS_PORT
 # Examples:
-#   Command Line: sh generate-template.sh 1.33.0 or sh generate-template.sh v1.33.0
-#   Environment: export KUBE_VERSION=1.33.0; export HTTPS_PORT=2443; sh generate-template.sh
+#   Command Line: sh generate-kind-config.sh 1.33.0 or sh generate-kind-config.sh v1.33.0
+#   Environment: export KUBE_VERSION=1.33.0; export HTTPS_PORT=2443; sh generate-kind-config.sh
 # If an error occurs, the script will display a message indicating the correct usage.
 
 # Function to detect machine IP address (cross-platform)
@@ -75,8 +75,8 @@ echo "✅ Machine IP detected: $MACHINE_IP"
 # Validate that the Kubernetes version argument has been provided
 if [ -z "$KUBE_VERSION" ]; then
     echo "Error: Kubernetes version is missing. Provide it as an argument or set the KUBE_VERSION environment variable."
-    echo "Usage: sh $0 [v]X.Y.Z [DEFAULT_HTTPS_PORT]"
-    echo "Example: sh $0 1.33.0 or sh $0 v1.33.0"
+    echo "Usage: sh generate-kind-config.sh [v]X.Y.Z [DEFAULT_HTTPS_PORT]"
+    echo "Example: sh generate-kind-config.sh 1.33.0 or sh generate-kind-config.sh v1.33.0"
     exit 1
 fi
 

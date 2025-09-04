@@ -9,17 +9,6 @@ load helper
 
 set -o pipefail
 
-# ========== Tool Validation Functions ==========
-
-# These debug functions are no longer needed since we use stable curl --write-out
-# instead of parsing version-dependent verbose output
-
-# ========== Prerequisites ==========
-
-
-
-
-
 # ========== Unified Template Processing ==========
 
 @test "process all templates with machine IP configuration" {

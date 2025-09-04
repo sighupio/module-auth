@@ -87,8 +87,6 @@ steps:
 name: E2E Tests on kind clusters version 1.29.8
 kind: pipeline
 type: docker
-node:
-  performance: low
 platform:
   os: linux
   arch: amd64
@@ -158,7 +156,6 @@ steps:
         from_secret: github_token
     commands:
       - |
-        echo 'deb http://deb.debian.org/debian bookworm-backports main' >> /etc/apt/sources.list.d/backports.list && apt-get update && apt-get install -y -t bookworm-backports curl
         mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
         eval "$(mise activate bash --shims)"
       - ./scripts/run-e2e-tests.sh
@@ -260,7 +257,6 @@ steps:
         from_secret: github_token
     commands:
       - |
-        echo 'deb http://deb.debian.org/debian bookworm-backports main' >> /etc/apt/sources.list.d/backports.list && apt-get update && apt-get install -y -t bookworm-backports curl
         mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
         eval "$(mise activate bash --shims)"
       - ./scripts/run-e2e-tests.sh
@@ -362,7 +358,6 @@ steps:
         from_secret: github_token
     commands:
       - |
-        echo 'deb http://deb.debian.org/debian bookworm-backports main' >> /etc/apt/sources.list.d/backports.list && apt-get update && apt-get install -y -t bookworm-backports curl
         mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
         eval "$(mise activate bash --shims)"
       - ./scripts/run-e2e-tests.sh
@@ -464,7 +459,6 @@ steps:
         from_secret: github_token
     commands:
       - |
-        echo 'deb http://deb.debian.org/debian bookworm-backports main' >> /etc/apt/sources.list.d/backports.list && apt-get update && apt-get install -y -t bookworm-backports curl
         mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
         eval "$(mise activate bash --shims)"
       - ./scripts/run-e2e-tests.sh
@@ -566,7 +560,6 @@ steps:
         from_secret: github_token
     commands:
       - |
-        echo 'deb http://deb.debian.org/debian bookworm-backports main' >> /etc/apt/sources.list.d/backports.list && apt-get update && apt-get install -y -t bookworm-backports curl
         mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
         eval "$(mise activate bash --shims)"
       - ./scripts/run-e2e-tests.sh

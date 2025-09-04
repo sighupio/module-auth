@@ -22,7 +22,6 @@ echo "🗑️  Cleaning up generated files..."
 rm -f "${KUBECONFIG_PATH}"
 rm -f "config-${CLUSTER_NAME}.yaml"
 rm -f "env-${CLUSTER_NAME}.env"
-rm -rf /tmp/test-certs
 
 # Clean up test artifacts that might be left behind
 rm -f /tmp/cookies.txt /tmp/auth_step*.log /tmp/auth_final_response.json
