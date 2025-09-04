@@ -9,19 +9,19 @@ metadata:
   namespace: cert-manager
 spec:
   secretName: common-ca-tls
-  commonName: "SIGHUP Test CA"
+  commonName: "ReeVo Test CA"
   isCA: true
   duration: 8760h # 1 year
   renewBefore: 720h # 30 days
   subject:
     organizationalUnits:
-      - "SIGHUP Test CA"
+      - "ReeVo Test CA"
     countries:
       - "IT"
     localities:
       - "Milan"
     organizations:
-      - "SIGHUP"
+      - "ReeVo"
   issuerRef:
     name: selfsigned-issuer
     kind: ClusterIssuer

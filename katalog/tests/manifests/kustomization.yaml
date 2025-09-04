@@ -17,8 +17,8 @@ kind: Kustomization
 # 8. gangplank (needs dex)
 
 resources:
-  - https://raw.githubusercontent.com/sighupio/fury-kubernetes-monitoring/refs/tags/v3.3.0-rc.1/katalog/prometheus-operator/crds/0servicemonitorCustomResourceDefinition.yaml
-  - https://raw.githubusercontent.com/sighupio/fury-kubernetes-monitoring/refs/tags/v3.3.0-rc.1/katalog/prometheus-operator/crds/0prometheusruleCustomResourceDefinition.yaml
+  - https://raw.githubusercontent.com/sighupio/module-monitoring/refs/tags/v3.5.0/katalog/prometheus-operator/crds/0servicemonitorCustomResourceDefinition.yaml
+  - https://raw.githubusercontent.com/sighupio/module-monitoring/refs/tags/v3.5.0/katalog/prometheus-operator/crds/0prometheusruleCustomResourceDefinition.yaml
   - cert-manager/
   - certificates/
   - nginx-ingress/
