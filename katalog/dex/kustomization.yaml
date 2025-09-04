@@ -17,4 +17,4 @@ images:
     newName: registry.sighup.io/fury/busybox
   - name: ghcr.io/dexidp/dex
     newName: registry.sighup.io/fury/dexidp/dex
-    newTag: v2.42.0
+    newTag: v2.44.0

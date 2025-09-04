@@ -30,7 +30,7 @@ Auth Module provides the following packages:
 | Package                        | Version   | Description                                                               |
 | ------------------------------ | --------- | ------------------------------------------------------------------------- |
 | [Pomerium](katalog/pomerium)   | `v0.30.5` | Identity-aware proxy that enables secure access to internal applications. |
-| [Dex](katalog/dex)             | `v2.42.0` | Dex is a Federated OpenID Connect Provider.                               |
+| [Dex](katalog/dex)             | `v2.44.0` | Dex is a Federated OpenID Connect Provider.                               |
 | [Gangplank](katalog/gangplank) | `v1.1.1`  | Enable authentication flows via OIDC for a kubernetes cluster.            |
 
 ## Compatibility

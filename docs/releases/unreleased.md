@@ -2,13 +2,13 @@
 
 Welcome to the latest release of the Auth module for the SIGHUP Distribution.
 
-This release updates Pomerium to the latest version available upstream, bringing enhanced security features and improved functionality.
+This release updates both Pomerium and Dex to their latest versions available upstream, bringing enhanced security features, improved functionality, and better reliability.
 
 ## Included packages
 
 | Package     | Current Version                                                        | Previous Version |
 | ----------- | ---------------------------------------------------------------------- | ---------------- |
-| `dex`       | [`v2.42.0`](https://github.com/dexidp/dex/releases/tag/v2.42.0)        | `v2.42.0`        |
+| `dex`       | [`v2.44.0`](https://github.com/dexidp/dex/releases/tag/v2.44.0)        | `v2.42.0`        |
 | `gangplank` | [`v1.1.1`](https://github.com/sighupio/gangplank/releases/tag/v1.1.1)  | `v1.1.1`         |
 | `pomerium`  | [`v0.30.5`](https://github.com/pomerium/pomerium/releases/tag/v0.30.5) | `v0.28.0`        |
 
@@ -28,6 +28,10 @@ kustomize build | kubectl apply -f -
 
 ### Notes
 
+**Pomerium Upgrade (v0.28.0 → v0.30.5):**
 - No breaking changes between Pomerium v0.28.0 and v0.30.5
 - Existing policy and configuration files remain fully compatible
 - All current features continue to work as expected
+
+**Dex Upgrade (v0.42.0 → v2.44.0):**
+- No breaking changes identified in the upgrade path
