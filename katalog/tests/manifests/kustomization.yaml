@@ -1,0 +1,29 @@
+# Copyright (c) 2017-present SIGHUP s.r.l All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Master kustomization for unified auth stack deployment
+# Components deployed in dependency order:
+# 1. cert-manager (CRDs first)
+# 2. certificates (needs cert-manager ClusterIssuer)
+# 3. nginx-ingress (needs cert-manager)  
+# 4. ldap-server (independent)
+# 5. dex (needs ldap-server)
+# 6. pomerium (needs dex)
+# 7. httpbin (needs nginx-ingress)  
+# 8. gangplank (needs dex)
+
+resources:
+  - https://raw.githubusercontent.com/sighupio/fury-kubernetes-monitoring/refs/tags/v3.3.0-rc.1/katalog/prometheus-operator/crds/0servicemonitorCustomResourceDefinition.yaml
+  - https://raw.githubusercontent.com/sighupio/fury-kubernetes-monitoring/refs/tags/v3.3.0-rc.1/katalog/prometheus-operator/crds/0prometheusruleCustomResourceDefinition.yaml
+  - cert-manager/
+  - certificates/
+  - nginx-ingress/
+  - ldap-server/
+  - dex/
+  - pomerium/
+  - httpbin/
+  - gangplank/

@@ -1,0 +1,13 @@
+katalog/tests/manifests/dex/secrets/config.yml
+katalog/tests/manifests/dex/ingress.yml
+katalog/tests/manifests/pomerium/resources/pomerium-config.env
+katalog/tests/manifests/httpbin/ingress.yml
+katalog/tests/manifests/certificates/dex-certificate.yaml
+katalog/tests/manifests/certificates/pomerium-certificate.yaml
+katalog/tests/manifests/certificates/httpbin-certificate.yaml
+katalog/tests/manifests/pomerium/resources/pomerium-policy.yml
+
+# E2E test temporary files
+config-*-*.yaml
+env-*-*.env
+kubeconfig-e2e

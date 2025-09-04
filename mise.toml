@@ -1,0 +1,66 @@
+# Copyright (c) 2017-present SIGHUP s.r.l All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+[env]
+# Default values for local development
+KUBE_VERSION = "1.33.0"
+DRONE_BUILD_NUMBER = "9999"
+DRONE_REPO_NAME = "module-auth"
+
+[tools]
+kind = "0.29.0"    
+kubectl = "1.33.4" 
+kustomize = "5.6.0"
+helm = "3.15.0"    
+yq = "4.43.1"      
+go = "1.23"        
+bats = "1.11.0"    
+drone = "1.9.0"
+kapp = "0.64.2"
+"ubi:google/addlicense" = "v1.1.1"
+envsubst = "1.4.3"
+
+# Development task definitions
+[tasks.add-license]
+description = "Add license headers to all files"
+run = '''
+echo "📄 Adding license headers..."
+addlicense -c "SIGHUP s.r.l" -y "2017-present" -v -l bsd .
+echo "✅ License headers added!"
+'''
+
+[tasks.validate-manifests]
+description = "Validate all manifests can be built"
+run = '''
+echo "🔍 Validating manifest builds..."
+kustomize build katalog/tests/manifests/pomerium > /dev/null && echo "  ✅ pomerium"
+kustomize build katalog/tests/manifests/dex > /dev/null && echo "  ✅ dex"
+kustomize build katalog/tests/manifests/gangplank > /dev/null && echo "  ✅ gangplank"
+kustomize build katalog/tests/manifests > /dev/null && echo "  ✅ complete auth stack"
+echo "✅ All manifests validated!"
+'''
+
+
+[tasks.e2e-create-cluster]
+description = "Create Kind cluster for E2E testing"
+run = "./scripts/create-e2e-cluster.sh"
+
+[tasks.e2e-run-tests]
+description = "Run E2E tests on existing cluster"
+run = "./scripts/run-e2e-tests.sh"
+
+[tasks.e2e-cleanup-cluster]
+description = "Clean up E2E test cluster and artifacts"
+run = "./scripts/cleanup-e2e-cluster.sh"
+
+[tasks.e2e]
+description = "Run complete E2E workflow: create → test → cleanup"
+run = '''
+echo "🚀 Running complete E2E workflow..."
+mise run e2e-create-cluster
+mise run e2e-run-tests  
+mise run e2e-cleanup-cluster
+echo "✅ E2E workflow completed!"
+'''
+

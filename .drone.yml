@@ -5,10 +5,13 @@
 name: Check for license presence
 kind: pipeline
 type: docker
-
+node:
+  performance: low
+clone:
+  depth: 1
 steps:
   - name: check
-    image: docker.io/library/golang:1.20
+    image: docker.io/library/golang:1.21
     pull: always
     commands:
       - go install github.com/google/addlicense@v1.1.1
@@ -18,358 +21,568 @@ steps:
 name: Linting
 kind: pipeline
 type: docker
-
+node:
+  performance: low
 depends_on:
   - Check for license presence
-
+clone:
+  depth: 1
 platform:
   os: linux
   arch: amd64
 
+environment:
+  # Mise configuration
+  MISE_DATA_DIR: "/mise-data"
+  MISE_OVERRIDE_CONFIG_FILENAMES: "mise.ci.toml"
+
+volumes:
+  - name: mise-cache
+    host:
+      path: /root/mise_data_dir
 steps:
-  - name: Linting with Policeman
-    image: quay.io/sighup/policeman
+  - name: Render Manifests
+    image: quay.io/sighup/mise:v2025.4.4
     pull: always
     environment:
-      FILTER_REGEX_EXCLUDE: (\.github)
-      # Identifies false positives like missing 'selector'.
-      # Doing this is valid for Kustomize patches
-      VALIDATE_KUBERNETES_KUBEVAL: "false"
-      # Some duplicated code is intended.
-      VALIDATE_JSCPD: "false"
-      # hadolint already validated dockerfiles
-      VALIDATE_DOCKERFILE: "false"
-      # Disable natural language checks
-      VALIDATE_NATURAL_LANGUAGE: "false"
-      # Disable html checks
-      VALIDATE_HTML: "false"
-      # Disable css checks
-      VALIDATE_CSS: "false"
-    depends_on:
-      - clone
-
-  - name: Render Manifests
-    image: quay.io/sighup/e2e-testing:1.1.0_0.11.0_3.12.0_1.9.4_1.27.1_3.5.3_4.33.3
-    pull: always
+      GITHUB_TOKEN:
+        from_secret: github_token
+    volumes:
+      - name: mise-cache
+        path: /mise-data
     depends_on:
       - clone
     commands:
+      - |
+        mise use kustomize@5.6.0
+        eval "$(mise activate bash --shims)"
       - kustomize build katalog/pomerium > pomerium.yml
       - kustomize build katalog/dex > dex.yml
       - kustomize build katalog/gangplank > gangplank.yml
 
-  - name: Check for usage of deprecated APIs
+  - &check-deprecated-apis
+    name: check-deprecated-apis-pomerium
     image: us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5
     pull: always
     depends_on:
       - Render Manifests
     commands:
       # we use --ignore-deprecations because we don't want the CI to fail when the API has not been removed yet.
-      - /pluto detect pomerium.yml --ignore-deprecations --target-versions=k8s=v1.31.0
-      - /pluto detect dex.yml --ignore-deprecations --target-versions=k8s=v1.31.0
-      - /pluto detect gangplank.yml --ignore-deprecations --target-versions=k8s=v1.31.0
+      - /pluto detect $${KUBERNETES_MANIFESTS} --ignore-deprecations --target-versions=k8s=v1.33.0
+    environment:
+      KUBERNETES_MANIFESTS: pomerium.yml
+
+  - <<: *check-deprecated-apis
+    name: check-deprecated-apis-dex
+    environment:
+      KUBERNETES_MANIFESTS: dex.yml
+
+  - <<: *check-deprecated-apis
+    name: check-deprecated-apis-gangplank
+    environment:
+      KUBERNETES_MANIFESTS: gangplank.yml
 
 
 ---
-name: E2E Tests Kubernetes v1.29.8
+name: E2E Tests on kind clusters version 1.29.8
 kind: pipeline
 type: docker
-
-depends_on:
-  - Linting
-
-clone:
-  depth: 1
-
 platform:
   os: linux
   arch: amd64
-
+depends_on:
+  - Linting
+clone:
+  depth: 1
 trigger:
   ref:
     include:
       - refs/tags/**
 
+environment:
+  # Mise configuration
+  MISE_DATA_DIR: "/mise-data"
+  MISE_OVERRIDE_CONFIG_FILENAMES: "mise.ci.toml"
+  
+  # Cluster configuration
+  KUBE_VERSION: "1.29.8"
+  KUBECONFIG: "kubeconfig-e2e"
+  
+  # Tool versions
+  KUBECTL_VERSION: "1.29.1"
+
 volumes:
   - name: dockersock
     host:
       path: /var/run/docker.sock
+  - name: mise-cache
+    host:
+      path: /root/mise_data_dir
 
 steps:
   - name: Create Kind Cluster
-    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.24.0_1.31.1_3.10.0
+    image: quay.io/sighup/mise:v2025.4.4
     pull: always
+    network_mode: host
     depends_on:
       - clone
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
     environment:
-      # KIND_CONFIG: ./katalog/tests/kind/config.yml
-      CLUSTER_VERSION: v1.29.8
-      KUBECONFIG: kubeconfig-v1.29.8
-      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.29.8
+      GITHUB_TOKEN:
+        from_secret: github_token
     commands:
-      # NOTE: kind's `--wait` flag that waits for the control-plane to be ready
-      # does not work when disabling the default CNI. It will always go in timeout.
-      - kind create cluster --name $${CLUSTER_NAME} --image registry.sighup.io/fury/kindest/node:$${CLUSTER_VERSION} # --config $${KIND_CONFIG}
-      # save the kubeconfig so we can use it from other steps.
-      - kind get kubeconfig --name $${CLUSTER_NAME} > $${KUBECONFIG}
+      - |
+        mise use kubectl@$${KUBECTL_VERSION} kind@0.29.0
+        eval "$(mise activate bash --shims)"
+      - ./scripts/create-e2e-cluster.sh
 
-  - name: End-to-End Tests
-    image: quay.io/sighup/e2e-testing:1.1.0_1.31.1_3.10.0_4.33.3
+  - name: Run E2E Tests
+    image: quay.io/sighup/mise:v2025.4.4
     pull: always
     network_mode: host
-    environment:
-      KUBECONFIG: kubeconfig-v1.29.8
     depends_on:
       - Create Kind Cluster
-    commands:
-      # wait for Kind cluster to be ready
-      - until kubectl get serviceaccount default > /dev/null 2>&1; do echo "waiting for control-plane" && sleep 1; done
-      - bats -t katalog/tests/tests.sh
-
-  - name: Destroy Kind Cluster
-    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.24.0_1.31.1_3.10.0
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
     environment:
-      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.29.8
+      GITHUB_TOKEN:
+        from_secret: github_token
     commands:
-      # does not matter if the command fails
-      - kind delete cluster --name $${CLUSTER_NAME} || true
+      - |
+        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
+        eval "$(mise activate bash --shims)"
+      - ./scripts/run-e2e-tests.sh
+
+  - name: Destroy Kind Cluster
+    image: quay.io/sighup/mise:v2025.4.4
+    pull: always
+    network_mode: host
     depends_on:
-      - End-to-End Tests
+      - Run E2E Tests
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        mise use kubectl@${KUBECTL_VERSION} kind@0.29.0
+        eval "$(mise activate bash --shims)"
+      - ./scripts/cleanup-e2e-cluster.sh
     when:
       status:
         - success
         - failure
 
 ---
-name: E2E Tests Kubernetes v1.30.4
+name: E2E Tests on kind clusters version 1.30.4
 kind: pipeline
 type: docker
-
-depends_on:
-  - Linting
-
-clone:
-  depth: 1
-
 platform:
   os: linux
   arch: amd64
-
+depends_on:
+  - Linting
+clone:
+  depth: 1
 trigger:
   ref:
     include:
       - refs/tags/**
 
+environment:
+  # Mise configuration
+  MISE_DATA_DIR: "/mise-data"
+  MISE_OVERRIDE_CONFIG_FILENAMES: "mise.ci.toml"
+  
+  # Cluster configuration
+  KUBE_VERSION: "1.30.4"
+  KUBECONFIG: "kubeconfig-e2e"
+  
+  # Tool versions
+  KUBECTL_VERSION: "1.30.1"
+
 volumes:
   - name: dockersock
     host:
       path: /var/run/docker.sock
+  - name: mise-cache
+    host:
+      path: /root/mise_data_dir
 
 steps:
   - name: Create Kind Cluster
-    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.24.0_1.31.1_3.10.0
+    image: quay.io/sighup/mise:v2025.4.4
     pull: always
+    network_mode: host
     depends_on:
       - clone
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
     environment:
-      # KIND_CONFIG: ./katalog/tests/kind/config.yml
-      CLUSTER_VERSION: v1.30.4
-      KUBECONFIG: kubeconfig-v1.30.4
-      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.30.4
+      GITHUB_TOKEN:
+        from_secret: github_token
     commands:
-      # NOTE: kind's `--wait` flag that waits for the control-plane to be ready
-      # does not work when disabling the default CNI. It will always go in timeout.
-      - kind create cluster --name $${CLUSTER_NAME} --image registry.sighup.io/fury/kindest/node:$${CLUSTER_VERSION} # --config $${KIND_CONFIG}
-      # save the kubeconfig so we can use it from other steps.
-      - kind get kubeconfig --name $${CLUSTER_NAME} > $${KUBECONFIG}
+      - |
+        mise use kubectl@$${KUBECTL_VERSION} kind@0.29.0
+        eval "$(mise activate bash --shims)"
+      - ./scripts/create-e2e-cluster.sh
 
-  - name: End-to-End Tests
-    image: quay.io/sighup/e2e-testing:1.1.0_1.31.1_3.10.0_4.33.3
+  - name: Run E2E Tests
+    image: quay.io/sighup/mise:v2025.4.4
     pull: always
     network_mode: host
-    environment:
-      KUBECONFIG: kubeconfig-v1.30.4
     depends_on:
       - Create Kind Cluster
-    commands:
-      # wait for Kind cluster to be ready
-      - until kubectl get serviceaccount default > /dev/null 2>&1; do echo "waiting for control-plane" && sleep 1; done
-      - bats -t katalog/tests/tests.sh
-
-  - name: Destroy Kind Cluster
-    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.24.0_1.31.1_3.10.0
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
     environment:
-      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.30.4
+      GITHUB_TOKEN:
+        from_secret: github_token
     commands:
-      # does not matter if the command fails
-      - kind delete cluster --name $${CLUSTER_NAME} || true
+      - |
+        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
+        eval "$(mise activate bash --shims)"
+      - ./scripts/run-e2e-tests.sh
+
+  - name: Destroy Kind Cluster
+    image: quay.io/sighup/mise:v2025.4.4
+    pull: always
+    network_mode: host
     depends_on:
-      - End-to-End Tests
+      - Run E2E Tests
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        mise use kubectl@${KUBECTL_VERSION} kind@0.29.0
+        eval "$(mise activate bash --shims)"
+      - ./scripts/cleanup-e2e-cluster.sh
     when:
       status:
         - success
         - failure
 
 ---
-name: E2E Tests Kubernetes v1.31.0
+name: E2E Tests on kind clusters version 1.31.0
 kind: pipeline
 type: docker
-
-depends_on:
-  - Linting
-
-clone:
-  depth: 1
-
 platform:
   os: linux
   arch: amd64
-
+depends_on:
+  - Linting
+clone:
+  depth: 1
 trigger:
   ref:
     include:
       - refs/tags/**
 
+environment:
+  # Mise configuration
+  MISE_DATA_DIR: "/mise-data"
+  MISE_OVERRIDE_CONFIG_FILENAMES: "mise.ci.toml"
+  
+  # Cluster configuration
+  KUBE_VERSION: "1.31.0"
+  KUBECONFIG: "kubeconfig-e2e"
+  
+  # Tool versions
+  KUBECTL_VERSION: "1.31.1"
+
 volumes:
   - name: dockersock
     host:
       path: /var/run/docker.sock
+  - name: mise-cache
+    host:
+      path: /root/mise_data_dir
 
 steps:
   - name: Create Kind Cluster
-    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.24.0_1.31.1_3.10.0
+    image: quay.io/sighup/mise:v2025.4.4
     pull: always
+    network_mode: host
     depends_on:
       - clone
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
     environment:
-      # KIND_CONFIG: ./katalog/tests/kind/config.yml
-      CLUSTER_VERSION: v1.31.0
-      KUBECONFIG: kubeconfig-v1.31.0
-      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.31.0
+      GITHUB_TOKEN:
+        from_secret: github_token
     commands:
-      # NOTE: kind's `--wait` flag that waits for the control-plane to be ready
-      # does not work when disabling the default CNI. It will always go in timeout.
-      - kind create cluster --name $${CLUSTER_NAME} --image registry.sighup.io/fury/kindest/node:$${CLUSTER_VERSION} # --config $${KIND_CONFIG}
-      # save the kubeconfig so we can use it from other steps.
-      - kind get kubeconfig --name $${CLUSTER_NAME} > $${KUBECONFIG}
+      - |
+        mise use kubectl@$${KUBECTL_VERSION} kind@0.29.0
+        eval "$(mise activate bash --shims)"
+      - ./scripts/create-e2e-cluster.sh
 
-  - name: End-to-End Tests
-    image: quay.io/sighup/e2e-testing:1.1.0_1.31.1_3.10.0_4.33.3
+  - name: Run E2E Tests
+    image: quay.io/sighup/mise:v2025.4.4
     pull: always
     network_mode: host
-    environment:
-      KUBECONFIG: kubeconfig-v1.31.0
     depends_on:
       - Create Kind Cluster
-    commands:
-      # wait for Kind cluster to be ready
-      - until kubectl get serviceaccount default > /dev/null 2>&1; do echo "waiting for control-plane" && sleep 1; done
-      - bats -t katalog/tests/tests.sh
-
-  - name: Destroy Kind Cluster
-    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.24.0_1.31.1_3.10.0
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
     environment:
-      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.31.0
+      GITHUB_TOKEN:
+        from_secret: github_token
     commands:
-      # does not matter if the command fails
-      - kind delete cluster --name $${CLUSTER_NAME} || true
+      - |
+        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
+        eval "$(mise activate bash --shims)"
+      - ./scripts/run-e2e-tests.sh
+
+  - name: Destroy Kind Cluster
+    image: quay.io/sighup/mise:v2025.4.4
+    pull: always
+    network_mode: host
     depends_on:
-      - End-to-End Tests
+      - Run E2E Tests
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        mise use kubectl@${KUBECTL_VERSION} kind@0.29.0
+        eval "$(mise activate bash --shims)"
+      - ./scripts/cleanup-e2e-cluster.sh
     when:
       status:
         - success
         - failure
 
 ---
-name: E2E Tests Kubernetes v1.32.0
+name: E2E Tests on kind clusters version 1.32.2
 kind: pipeline
 type: docker
-
-depends_on:
-  - Linting
-  - E2E Tests Kubernetes v1.31.0
-
-clone:
-  depth: 1
-
 platform:
   os: linux
   arch: amd64
-
+depends_on:
+  - Linting
+clone:
+  depth: 1
 trigger:
   ref:
     include:
       - refs/tags/**
 
+environment:
+  # Mise configuration
+  MISE_DATA_DIR: "/mise-data"
+  MISE_OVERRIDE_CONFIG_FILENAMES: "mise.ci.toml"
+  
+  # Cluster configuration
+  KUBE_VERSION: "1.32.2"
+  KUBECONFIG: "kubeconfig-e2e"
+  
+  # Tool versions
+  KUBECTL_VERSION: "1.32.2"
+
 volumes:
   - name: dockersock
     host:
       path: /var/run/docker.sock
+  - name: mise-cache
+    host:
+      path: /root/mise_data_dir
 
 steps:
   - name: Create Kind Cluster
-    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.27.0_1.32.2_5.6.0
+    image: quay.io/sighup/mise:v2025.4.4
     pull: always
+    network_mode: host
     depends_on:
       - clone
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
     environment:
-      # KIND_CONFIG: ./katalog/tests/kind/config.yml
-      CLUSTER_VERSION: v1.32.2
-      KUBECONFIG: kubeconfig-v1.32.2
-      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.32.2
+      GITHUB_TOKEN:
+        from_secret: github_token
     commands:
-      # NOTE: kind's `--wait` flag that waits for the control-plane to be ready
-      # does not work when disabling the default CNI. It will always go in timeout.
-      - kind create cluster --name $${CLUSTER_NAME} --image registry.sighup.io/fury/kindest/node:$${CLUSTER_VERSION} # --config $${KIND_CONFIG}
-      # save the kubeconfig so we can use it from other steps.
-      - kind get kubeconfig --name $${CLUSTER_NAME} > $${KUBECONFIG}
+      - |
+        mise use kubectl@$${KUBECTL_VERSION} kind@0.29.0
+        eval "$(mise activate bash --shims)"
+      - ./scripts/create-e2e-cluster.sh
 
-  - name: End-to-End Tests
-    image: quay.io/sighup/e2e-testing:2.24.17_1.1.0_3.12.0_1.32.2_5.6.0_4.33.3
+  - name: Run E2E Tests
+    image: quay.io/sighup/mise:v2025.4.4
     pull: always
     network_mode: host
-    environment:
-      KUBECONFIG: kubeconfig-v1.32.2
     depends_on:
       - Create Kind Cluster
-    commands:
-      # wait for Kind cluster to be ready
-      - until kubectl get serviceaccount default > /dev/null 2>&1; do echo "waiting for control-plane" && sleep 1; done
-      - bats -t katalog/tests/tests.sh
-
-  - name: Destroy Kind Cluster
-    image: quay.io/sighup/dind-kind-kubectl-kustomize:0.27.0_1.32.2_5.6.0
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
     environment:
-      CLUSTER_NAME: ${DRONE_REPO_NAME}-${DRONE_BUILD_NUMBER}-v1.32.2
+      GITHUB_TOKEN:
+        from_secret: github_token
     commands:
-      # does not matter if the command fails
-      - kind delete cluster --name $${CLUSTER_NAME} || true
+      - |
+        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
+        eval "$(mise activate bash --shims)"
+      - ./scripts/run-e2e-tests.sh
+
+  - name: Destroy Kind Cluster
+    image: quay.io/sighup/mise:v2025.4.4
+    pull: always
+    network_mode: host
     depends_on:
-      - End-to-End Tests
+      - Run E2E Tests
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        mise use kubectl@${KUBECTL_VERSION} kind@0.29.0
+        eval "$(mise activate bash --shims)"
+      - ./scripts/cleanup-e2e-cluster.sh
+    when:
+      status:
+        - success
+        - failure
+
+---
+name: E2E Tests on kind clusters version 1.33.0
+kind: pipeline
+type: docker
+platform:
+  os: linux
+  arch: amd64
+depends_on:
+  - Linting
+clone:
+  depth: 1
+trigger:
+  ref:
+    include:
+      - refs/tags/**
+
+environment:
+  # Mise configuration
+  MISE_DATA_DIR: "/mise-data"
+  MISE_OVERRIDE_CONFIG_FILENAMES: "mise.ci.toml"
+  
+  # Cluster configuration
+  KUBE_VERSION: "1.33.0"
+  KUBECONFIG: "kubeconfig-e2e"
+  
+  # Tool versions
+  KUBECTL_VERSION: "1.33.4"
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
+  - name: mise-cache
+    host:
+      path: /root/mise_data_dir
+
+steps:
+  - name: Create Kind Cluster
+    image: quay.io/sighup/mise:v2025.4.4
+    pull: always
+    network_mode: host
+    depends_on:
+      - clone
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        mise use kubectl@$${KUBECTL_VERSION} kind@0.29.0
+        eval "$(mise activate bash --shims)"
+      - ./scripts/create-e2e-cluster.sh
+
+  - name: Run E2E Tests
+    image: quay.io/sighup/mise:v2025.4.4
+    pull: always
+    network_mode: host
+    depends_on:
+      - Create Kind Cluster
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        mise use kubectl@$${KUBECTL_VERSION} kustomize@5.6.0 bats@1.11.0 kapp@0.64.2 envsubst@1.4.3
+        eval "$(mise activate bash --shims)"
+      - ./scripts/run-e2e-tests.sh
+
+  - name: Destroy Kind Cluster
+    image: quay.io/sighup/mise:v2025.4.4
+    pull: always
+    network_mode: host
+    depends_on:
+      - Run E2E Tests
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+      - name: mise-cache
+        path: /mise-data
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - |
+        mise use kubectl@${KUBECTL_VERSION} kind@0.29.0
+        eval "$(mise activate bash --shims)"
+      - ./scripts/cleanup-e2e-cluster.sh
     when:
       status:
         - success
@@ -381,10 +594,11 @@ kind: pipeline
 type: docker
 
 depends_on:
-  - E2E Tests Kubernetes v1.29.8
-  - E2E Tests Kubernetes v1.30.4
-  - E2E Tests Kubernetes v1.31.0
-  - E2E Tests Kubernetes v1.32.0
+  - E2E Tests on kind clusters version 1.29.8
+  - E2E Tests on kind clusters version 1.30.4
+  - E2E Tests on kind clusters version 1.31.0
+  - E2E Tests on kind clusters version 1.32.2
+  - E2E Tests on kind clusters version 1.33.0
 
 platform:
   os: linux
