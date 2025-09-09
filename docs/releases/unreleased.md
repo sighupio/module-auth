@@ -26,8 +26,18 @@ To upgrade this module from `v0.5.1` to `v0.6.0`, you need to download this new 
 kustomize build | kubectl apply -f -
 ```
 
+#### Pomerium
+
+Please pay attention, Pomerium v0.29.0 includes potentially breaking changes that depend on the target environment.
+
+Basically, Pomerium v0.29.0 replaces all existing tracing methods with a new OpenTelemetry-based system:
+
+- Enable seamless request tracing across multiple services with the new OTEL-based tracing system. Users can now easily configure and understand traces, with improved visibility into the flow of requests, even at low sample rates. All previously supported tracing methods are removed.
+
+For more technical details check the upstream [release notes](https://github.com/pomerium/pomerium/releases/tag/v0.29.0).
+
 ### Notes
 
-- No breaking changes between Pomerium v0.28.0 and v0.30.5
+- Pomerium v0.29.0 has breaking changes that don't impact the module directly
 - Existing policy and configuration files remain fully compatible
 - All current features continue to work as expected
