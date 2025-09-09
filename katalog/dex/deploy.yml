@@ -110,7 +110,7 @@ spec:
                 - ALL
       containers:
         - name: dex
-          image: ghcr.io/dexidp/dex:v2.42.0
+          image: ghcr.io/dexidp/dex:v2.44.0
           command:
             - /usr/local/bin/dex
             - serve
