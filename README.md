@@ -9,7 +9,7 @@
 </h1>
 <!-- markdownlint-enable MD033 -->
 
-![Release](https://img.shields.io/badge/Latest%20Release-v0.6.0-blue)
+![Release](https://img.shields.io/badge/Latest%20Release-v0.6.1-blue)
 ![License](https://img.shields.io/github/license/sighupio/module-auth?label=License)
 ![Slack](https://img.shields.io/badge/slack-@kubernetes/fury-yellow.svg?logo=slack&label=Slack)
 
@@ -29,7 +29,7 @@ Auth Module provides the following packages:
 
 | Package                        | Version   | Description                                                               |
 | ------------------------------ | --------- | ------------------------------------------------------------------------- |
-| [Pomerium](katalog/pomerium)   | `v0.30.5` | Identity-aware proxy that enables secure access to internal applications. |
+| [Pomerium](katalog/pomerium)   | `v0.31.1` | Identity-aware proxy that enables secure access to internal applications. |
 | [Dex](katalog/dex)             | `v2.44.0` | Dex is a Federated OpenID Connect Provider.                               |
 | [Gangplank](katalog/gangplank) | `v1.1.1`  | Enable authentication flows via OIDC for a kubernetes cluster.            |
 
@@ -42,6 +42,7 @@ Auth Module provides the following packages:
 | `1.31.x`           | :white_check_mark: | No known issues. |
 | `1.32.x`           | :white_check_mark: | No known issues. |
 | `1.33.x`           | :white_check_mark: | No known issues. |
+| `1.34.x`           | :white_check_mark: | No known issues. |
 
 Check the [compatibility matrix][compatibility-matrix] for additional information on previous releases of the modules.
 
@@ -66,7 +67,7 @@ Check the [compatibility matrix][compatibility-matrix] for additional informatio
 
 ```yaml
 versions:
-  auth: "v0.6.0"
+  auth: "v0.6.1"
 bases:
   - name: auth/pomerium
   - name: auth/dex
