@@ -114,7 +114,7 @@ spec:
           command:
             - /usr/local/bin/dex
             - serve
-            - /etc/dex/config.yaml
+            - /etc/dex/cfg/config.yml
           ports:
             - name: http
               containerPort: 5556
@@ -149,7 +149,7 @@ spec:
                 - ALL
           volumeMounts:
             - name: config
-              mountPath: /etc/dex
+              mountPath: /etc/dex/cfg
               readOnly: true
             - name: dex-web-custom-archive
               mountPath: /web-archive
