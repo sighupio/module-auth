@@ -17,6 +17,7 @@ With the `dex-built.yml` file, check differences with the current `deploy.yml` f
 What was customized (what differs from the helm template command):
 
 - Simplified the labels
+- Kept config volume mounted at `/etc/dex/cfg` (now chart default is `/etc/dex`) to allow other volumes under `/etc/dex/` (e.g. TLS CA at `/etc/dex/tls/`)
 - Changed metrics port name from `telemetry` to `metrics`
 - Simplified container command
 - Changed configuration path
