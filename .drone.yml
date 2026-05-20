@@ -715,7 +715,7 @@ environment:
   KUBECONFIG: "kubeconfig-e2e"
 
   # Tool versions
-  KUBECTL_VERSION: "1.35.0"
+  KUBECTL_VERSION: "1.35.5"
 
 volumes:
   - name: dockersock
