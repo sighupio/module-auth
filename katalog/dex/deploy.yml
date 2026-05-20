@@ -110,11 +110,11 @@ spec:
                 - ALL
       containers:
         - name: dex
-          image: ghcr.io/dexidp/dex:v2.44.0
+          image: ghcr.io/dexidp/dex:v2.45.1
           command:
             - /usr/local/bin/dex
             - serve
-            - /etc/dex/cfg/config.yml
+            - /etc/dex/config.yaml
           ports:
             - name: http
               containerPort: 5556
@@ -149,7 +149,7 @@ spec:
                 - ALL
           volumeMounts:
             - name: config
-              mountPath: /etc/dex/cfg
+              mountPath: /etc/dex
               readOnly: true
             - name: dex-web-custom-archive
               mountPath: /web-archive
