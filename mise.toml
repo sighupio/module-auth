@@ -4,13 +4,13 @@
 
 [env]
 # Default values for local development
-KUBE_VERSION = "1.35.0"
+KUBE_VERSION = "1.35.5"
 DRONE_BUILD_NUMBER = "9999"
 DRONE_REPO_NAME = "module-auth"
 
 [tools]
 kind = "0.31.0"
-kubectl = "1.35.0"
+kubectl = "1.35.5"
 kustomize = "5.6.0"
 helm = "3.15.0"    
 yq = "4.43.1"      
