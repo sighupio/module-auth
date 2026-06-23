@@ -55,7 +55,7 @@ Check the [compatibility matrix][compatibility-matrix] for additional informatio
 
 ### Configuration
 
-The module is deployed with sensible defaults. Configuration is **optional**: you can customize its packages under `spec.distribution.modules.auth` in your `furyctl.yaml`. If you omit the block, the defaults are applied.
+You configure the module under `spec.distribution.modules.auth` in your `furyctl.yaml`. The `provider.type` field selects how access to the cluster's internal applications is protected: `none` (no added authentication, the default), `basicAuth`, or `sso` (Pomerium + Dex). The other fields are optional and fall back to sensible defaults.
 
 ```yaml
 apiVersion: kfd.sighup.io/v1alpha2
