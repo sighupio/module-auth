@@ -1,0 +1,31 @@
+# Auth Module Release vX.Y.Z
+
+Welcome to the latest release of the Auth module for the SIGHUP Distribution.
+
+This release updates Gangplank to `v1.4.0`.
+
+## Included packages
+
+| Package     | Current Version                                                        | Previous Version |
+| ----------- | ---------------------------------------------------------------------- | ---------------- |
+| `dex`       | [`v2.45.1`](https://github.com/dexidp/dex/releases/tag/v2.45.1)        | No update        |
+| `gangplank` | [`v1.4.0`](https://github.com/sighupio/gangplank/releases/tag/v1.4.0)  | `v1.3.0`         |
+| `pomerium`  | [`v0.33.1`](https://github.com/pomerium/pomerium/releases/tag/v0.33.1) | No update        |
+
+## Compatibility
+
+This release maintains compatibility with Kubernetes versions 1.33.x through 1.36.x.
+
+## Notable changes
+
+Gangplank `v1.4.0` is built with Go 1.27.4 and updated dependencies. It also fixes the `ClusterName` value in custom home page templates.
+
+## Update Guide 🦮
+
+### Process
+
+To upgrade this module, you need to download this new version, then apply the `kustomize` project.
+
+```bash
+kustomize build | kubectl apply -f -
+```
