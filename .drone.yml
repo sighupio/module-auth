@@ -14,8 +14,6 @@
 name: Check for license presence
 kind: pipeline
 type: docker
-node:
-  performance: low
 clone:
   depth: 1
 volumes:
@@ -40,8 +38,6 @@ steps:
 name: validate
 kind: pipeline
 type: docker
-node:
-  performance: low
 depends_on:
   - Check for license presence
 clone:
@@ -117,8 +113,6 @@ steps:
 name: E2E Tests on kind clusters version 1.33.0
 kind: pipeline
 type: docker
-node:
-  performance: low
 platform:
   os: linux
   arch: amd64
@@ -219,8 +213,6 @@ steps:
 name: E2E Tests on kind clusters version 1.34.0
 kind: pipeline
 type: docker
-node:
-  performance: low
 platform:
   os: linux
   arch: amd64
@@ -321,8 +313,6 @@ steps:
 name: E2E Tests on kind clusters version 1.35.0
 kind: pipeline
 type: docker
-node:
-  performance: low
 platform:
   os: linux
   arch: amd64
@@ -423,8 +413,6 @@ steps:
 name: E2E Tests on kind clusters version 1.36.4
 kind: pipeline
 type: docker
-node:
-  performance: low
 platform:
   os: linux
   arch: amd64
@@ -525,8 +513,6 @@ steps:
 name: release
 kind: pipeline
 type: docker
-node:
-  performance: low
 
 depends_on:
   - E2E Tests on kind clusters version 1.33.0
